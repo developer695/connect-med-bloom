@@ -77,9 +77,18 @@ const MarketsPage = () => {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="mt-12 p-6 md:p-8 rounded-lg bg-primary-light"
         >
-          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">Cross-Functional Expertise</h3>
+          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">
+            <EditableText
+              value={markets.crossFunctionalTitle}
+              onSave={(val) => updateContent("markets", { crossFunctionalTitle: val })}
+            />
+          </h3>
           <p className="text-muted-foreground leading-relaxed">
-            Our team's diverse experience across these market segments enables us to provide nuanced, sector-specific guidance while leveraging cross-functional insights to optimize your commercialization strategy.
+            <EditableText
+              value={markets.crossFunctionalText}
+              onSave={(val) => updateContent("markets", { crossFunctionalText: val })}
+              multiline
+            />
           </p>
         </motion.div>
       </div>

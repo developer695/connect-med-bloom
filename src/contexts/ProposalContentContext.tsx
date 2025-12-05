@@ -37,17 +37,23 @@ export interface ProposalContent {
     sectionLabel: string;
     title: string;
     services: { title: string; description: string }[];
+    integratedTitle: string;
+    integratedText: string;
   };
   markets: {
     sectionLabel: string;
     title: string;
     segments: { title: string; description: string; tags: string[] }[];
+    crossFunctionalTitle: string;
+    crossFunctionalText: string;
   };
   clients: {
     sectionLabel: string;
     title: string;
     intro: string;
     clientTypes: { title: string; description: string }[];
+    tailoredTitle: string;
+    tailoredText: string;
   };
   value: {
     sectionLabel: string;
@@ -122,6 +128,8 @@ const defaultContent: ProposalContent = {
       { title: "Regulatory Submissions", description: "Our regulatory experts navigate complex FDA pathways to accelerate approval timelines. We provide regulatory strategy development, pathway assessment and optimization, submission preparation and management, FDA communication and meeting preparation, and post-market compliance support." },
       { title: "Market Access & Reimbursement", description: "We develop comprehensive strategies to ensure appropriate reimbursement and market access. Services include reimbursement pathway analysis, health economics and outcomes research, payer engagement and contracting, coding and coverage strategy, and value proposition development." },
     ],
+    integratedTitle: "Integrated Service Model",
+    integratedText: "While each service can be engaged independently, our true value lies in our integrated approach. By coordinating across regulatory, clinical, commercial, and financial dimensions, we create synergies that accelerate timelines, reduce costs, and increase the probability of commercial success.",
   },
   markets: {
     sectionLabel: "FOCUS AREAS",
@@ -132,6 +140,8 @@ const defaultContent: ProposalContent = {
       { title: "Therapeutics & Drug Delivery", description: "Therapeutics and drug delivery systems are revolutionizing treatment by enhancing precision and improving patient outcomes. Examples include nanoparticle-based drug delivery platforms, sustained-release therapies, and biologic drug delivery devices.", tags: ["Nanoparticle Delivery", "Sustained Release", "Biologics"] },
       { title: "Diagnostics & Imaging", description: "Diagnostics and imaging are critical in early disease detection and effective treatment planning. Breakthroughs include AI-driven diagnostic platforms, point-of-care blood analyzers, and portable imaging technologies like handheld ultrasounds and advanced CT scanners.", tags: ["AI Diagnostics", "Point-of-Care", "Portable Imaging", "Advanced Scanners"] },
     ],
+    crossFunctionalTitle: "Cross-Functional Expertise",
+    crossFunctionalText: "Our team's diverse experience across these market segments enables us to provide nuanced, sector-specific guidance while leveraging cross-functional insights to optimize your commercialization strategy.",
   },
   clients: {
     sectionLabel: "WHO WE SERVE",
@@ -142,6 +152,8 @@ const defaultContent: ProposalContent = {
       { title: "Global MedTech Companies Entering the US Market", description: "International companies aiming to establish a foothold in the U.S. healthcare market. We provide localized expertise to navigate the complex regulatory environment, build connections with key stakeholders, and design effective market-entry strategies." },
       { title: "Strategic Partners and Collaborators", description: "Organizations and institutions aligned with advancing healthcare innovation, including research institutions, healthcare providers, and industry associations. We work collaboratively to enhance the impact of innovative solutions and improve patient outcomes." },
     ],
+    tailoredTitle: "Tailored Partnerships",
+    tailoredText: "By tailoring our services to the unique needs of each client, UnifiMed bridges the gap between innovation and commercialization. Whether it's navigating regulatory complexities, securing funding, or executing market entry strategies, we provide the strategic support to ensure long-term success.",
   },
   value: {
     sectionLabel: "WHY UNIFIMED",

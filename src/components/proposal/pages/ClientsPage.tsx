@@ -80,9 +80,18 @@ const ClientsPage = () => {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-8 md:mt-12 p-6 md:p-8 rounded-lg bg-primary/15"
         >
-          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">Tailored Partnerships</h3>
+          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">
+            <EditableText
+              value={clients.tailoredTitle}
+              onSave={(val) => updateContent("clients", { tailoredTitle: val })}
+            />
+          </h3>
           <p className="text-muted-foreground leading-relaxed">
-            By tailoring our services to the unique needs of each client, UnifiMed bridges the gap between innovation and commercialization. Whether it's navigating regulatory complexities, securing funding, or executing market entry strategies, we provide the strategic support to ensure long-term success.
+            <EditableText
+              value={clients.tailoredText}
+              onSave={(val) => updateContent("clients", { tailoredText: val })}
+              multiline
+            />
           </p>
         </motion.div>
       </div>

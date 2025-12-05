@@ -76,9 +76,18 @@ const SolutionsPage = () => {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="mt-12 p-6 md:p-8 rounded-lg border-2 border-primary"
         >
-          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">Integrated Service Model</h3>
+          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">
+            <EditableText
+              value={solutions.integratedTitle}
+              onSave={(val) => updateContent("solutions", { integratedTitle: val })}
+            />
+          </h3>
           <p className="text-muted-foreground leading-relaxed">
-            While each service can be engaged independently, our true value lies in our integrated approach. By coordinating across regulatory, clinical, commercial, and financial dimensions, we create synergies that accelerate timelines, reduce costs, and increase the probability of commercial success.
+            <EditableText
+              value={solutions.integratedText}
+              onSave={(val) => updateContent("solutions", { integratedText: val })}
+              multiline
+            />
           </p>
         </motion.div>
       </div>

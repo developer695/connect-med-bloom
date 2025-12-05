@@ -120,7 +120,7 @@ const UnifiMedProposal = () => {
               <span className="hidden md:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <ExportDialog totalPages={pages.length} goToPage={goToPage} />
+            <ExportDialog />
             <EditModeToggle />
           </div>
 
