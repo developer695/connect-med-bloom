@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
 import { Globe, Target, TrendingUp } from "lucide-react";
+import EditableText from "../EditableText";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const AboutPage = () => {
+  const { content, updateContent } = useProposalContent();
+  const { about } = content;
+
   const stats = [
     { icon: Globe, title: "Global Reach", desc: "Supporting international MedTech innovators entering the US market" },
     { icon: Target, title: "Focused Expertise", desc: "Specialized in early-stage MedTech commercialization strategies" },
@@ -17,8 +22,18 @@ const AboutPage = () => {
           transition={{ duration: 0.5 }}
           className="mb-12"
         >
-          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">COMPANY OVERVIEW</div>
-          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">About UnifiMed</h2>
+          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">
+            <EditableText
+              value={about.sectionLabel}
+              onSave={(val) => updateContent("about", { sectionLabel: val })}
+            />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">
+            <EditableText
+              value={about.title}
+              onSave={(val) => updateContent("about", { title: val })}
+            />
+          </h2>
         </motion.div>
 
         <motion.div
@@ -49,24 +64,50 @@ const AboutPage = () => {
           className="space-y-6 text-muted-foreground"
         >
           <p className="text-lg leading-relaxed">
-            UnifiMed is a global advisory firm supporting early-stage MedTech founders and executives on their journey to commercialization in the United States. We provide a comprehensive suite of services, including regulatory guidance, market strategy development, financial support through direct investment and access to capital networks, and operational execution.
+            <EditableText
+              value={about.intro}
+              onSave={(val) => updateContent("about", { intro: val })}
+              multiline
+            />
           </p>
 
           <div className="bg-secondary p-8 rounded-lg my-8">
-            <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 text-foreground">Our Expertise</h3>
+            <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 text-foreground">
+              <EditableText
+                value={about.expertiseTitle}
+                onSave={(val) => updateContent("about", { expertiseTitle: val })}
+              />
+            </h3>
             <p className="text-muted-foreground leading-relaxed">
-              Our team brings a unique combination of clinical, regulatory, and commercial expertise, having successfully led clinical departments, regulatory and reimbursement activities, and commercial strategies and product launches for several startup and Fortune 500 companies.
+              <EditableText
+                value={about.expertiseText}
+                onSave={(val) => updateContent("about", { expertiseText: val })}
+                multiline
+              />
             </p>
           </div>
 
-          <h3 className="text-xl md:text-2xl font-heading font-semibold mt-8 mb-4 text-foreground">Our Mission</h3>
+          <h3 className="text-xl md:text-2xl font-heading font-semibold mt-8 mb-4 text-foreground">
+            <EditableText
+              value={about.missionTitle}
+              onSave={(val) => updateContent("about", { missionTitle: val })}
+            />
+          </h3>
           <p className="leading-relaxed">
-            Our mission is to bridge the gap between innovation and patient care by empowering MedTech founders with the access, expertise, resources, and strategic partnerships needed to succeed.
+            <EditableText
+              value={about.missionText}
+              onSave={(val) => updateContent("about", { missionText: val })}
+              multiline
+            />
           </p>
 
           <div className="border-l-4 border-primary pl-6 my-8">
             <p className="text-lg md:text-xl italic text-foreground leading-relaxed">
-              "UnifiMed is a scalable and efficient MedTech ecosystem designed to de-risk innovative companies, accelerate time to market, and deliver measurable outcomes for both companies and investors."
+              "<EditableText
+                value={about.quote}
+                onSave={(val) => updateContent("about", { quote: val })}
+                multiline
+              />"
             </p>
           </div>
         </motion.div>
