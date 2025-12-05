@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ExportDialog from "./ExportDialog";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -72,7 +73,7 @@ const UnifiMedProposal = () => {
       {/* Main content area */}
       <div className="flex-1 relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center p-2 md:p-4">
-          <div className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
+          <div id="proposal-content" className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
             <AnimatePresence initial={false} custom={direction} mode="wait">
               <motion.div
                 key={currentPage}
@@ -118,6 +119,7 @@ const UnifiMedProposal = () => {
               <span className="hidden md:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
+            <ExportDialog pdfElementId="proposal-content" />
           </div>
 
           {/* Page indicators */}
