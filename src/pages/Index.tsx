@@ -1,7 +1,12 @@
 import UnifiMedProposal from "@/components/proposal/UnifiMedProposal";
+import { ProposalContentProvider } from "@/contexts/ProposalContentContext";
 
 const Index = () => {
-  return <UnifiMedProposal />;
+  return (
+    <ProposalContentProvider>
+      <UnifiMedProposal />
+    </ProposalContentProvider>
+  );
 };
 
 export default Index;

@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
 import UnifiMedLogo from "../UnifiMedLogo";
+import EditableText from "../EditableText";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const CoverPage = () => {
+  const { content, updateContent } = useProposalContent();
+  const { cover } = content;
+
   return (
     <div className="h-full flex flex-col justify-between p-8 md:p-16 bg-card relative overflow-hidden">
       {/* Decorative circles */}
@@ -25,13 +30,24 @@ const CoverPage = () => {
       >
         <div className="max-w-3xl">
           <div className="text-sm font-semibold mb-3 text-primary tracking-wide">
-            STRATEGIC ADVISORY PROPOSAL
+            <EditableText
+              value={cover.tagline}
+              onSave={(val) => updateContent("cover", { tagline: val })}
+            />
           </div>
           <h1 className="text-4xl md:text-6xl font-heading font-light mb-6 text-foreground leading-tight">
-            Streamlining US Market Entry for MedTech Innovation
+            <EditableText
+              value={cover.title}
+              onSave={(val) => updateContent("cover", { title: val })}
+              multiline
+            />
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8">
-            A comprehensive partnership framework for accelerating commercialization and value creation
+            <EditableText
+              value={cover.subtitle}
+              onSave={(val) => updateContent("cover", { subtitle: val })}
+              multiline
+            />
           </p>
         </div>
       </motion.div>
@@ -44,11 +60,26 @@ const CoverPage = () => {
       >
         <div className="text-sm text-muted-foreground">
           <div className="font-semibold">CONFIDENTIAL</div>
-          <div>December 2025</div>
+          <div>
+            <EditableText
+              value={cover.date}
+              onSave={(val) => updateContent("cover", { date: val })}
+            />
+          </div>
         </div>
         <div className="text-right text-sm text-muted-foreground">
-          <div>UnifiMed Global Advisory</div>
-          <div>info@unifimed.com</div>
+          <div>
+            <EditableText
+              value={cover.company}
+              onSave={(val) => updateContent("cover", { company: val })}
+            />
+          </div>
+          <div>
+            <EditableText
+              value={cover.email}
+              onSave={(val) => updateContent("cover", { email: val })}
+            />
+          </div>
         </div>
       </motion.div>
     </div>

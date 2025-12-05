@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
+import EditModeToggle from "./EditModeToggle";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -119,7 +120,8 @@ const UnifiMedProposal = () => {
               <span className="hidden md:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <ExportDialog pdfElementId="proposal-content" />
+            <ExportDialog totalPages={pages.length} goToPage={goToPage} />
+            <EditModeToggle />
           </div>
 
           {/* Page indicators */}

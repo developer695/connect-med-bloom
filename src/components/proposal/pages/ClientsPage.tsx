@@ -1,33 +1,17 @@
 import { motion } from "framer-motion";
-
-const clients = [
-  {
-    title: "MedTech Startups",
-    desc: "Visionary entrepreneurs and early-stage companies seeking to bring groundbreaking medical technologies to market. We provide the expertise needed to navigate regulatory pathways, develop commercialization strategies, and secure funding."
-  },
-  {
-    title: "Established MedTech Companies",
-    desc: "Organizations with proven technologies looking to expand their market presence or optimize their US operations. We help refine go-to-market strategies, improve operational efficiency, and achieve sustainable growth."
-  },
-  {
-    title: "Private Equity and Venture Capital Firms",
-    desc: "Investors focused on maximizing the value of their MedTech portfolios. We partner to de-risk investments, streamline commercialization efforts, and deliver measurable financial and operational outcomes."
-  },
-  {
-    title: "Healthcare Innovators and Inventors",
-    desc: "Clinicians, researchers, and inventors with novel technologies seeking support to transition from concept to market-ready solutions. We offer end-to-end guidance, from regulatory compliance to market positioning."
-  },
-  {
-    title: "Global MedTech Companies Entering the US Market",
-    desc: "International companies aiming to establish a foothold in the U.S. healthcare market. We provide localized expertise to navigate the complex regulatory environment and design effective market-entry strategies."
-  },
-  {
-    title: "Strategic Partners and Collaborators",
-    desc: "Organizations and institutions aligned with advancing healthcare innovation, including research institutions, healthcare providers, and industry associations."
-  }
-];
+import EditableText from "../EditableText";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const ClientsPage = () => {
+  const { content, updateContent } = useProposalContent();
+  const { clients } = content;
+
+  const updateClient = (index: number, field: "title" | "description", value: string) => {
+    const newClients = [...clients.clientTypes];
+    newClients[index] = { ...newClients[index], [field]: value };
+    updateContent("clients", { clientTypes: newClients });
+  };
+
   return (
     <div className="h-full p-8 md:p-16 bg-card overflow-auto">
       <div className="max-w-5xl mx-auto">
@@ -37,8 +21,18 @@ const ClientsPage = () => {
           transition={{ duration: 0.5 }}
           className="mb-8 md:mb-12"
         >
-          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">WHO WE SERVE</div>
-          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">Our Clients</h2>
+          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">
+            <EditableText
+              value={clients.sectionLabel}
+              onSave={(val) => updateContent("clients", { sectionLabel: val })}
+            />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">
+            <EditableText
+              value={clients.title}
+              onSave={(val) => updateContent("clients", { title: val })}
+            />
+          </h2>
         </motion.div>
 
         <motion.p
@@ -47,20 +41,35 @@ const ClientsPage = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-base md:text-lg text-muted-foreground mb-8 md:mb-12 leading-relaxed"
         >
-          UnifiMed partners with a diverse range of stakeholders across the MedTech ecosystem, focusing on early-stage founders, executives, and investors who are driving innovation in healthcare.
+          <EditableText
+            value={clients.intro}
+            onSave={(val) => updateContent("clients", { intro: val })}
+            multiline
+          />
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {clients.map((client, index) => (
+          {clients.clientTypes.map((client, index) => (
             <motion.div
-              key={client.title}
+              key={index}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.08 }}
               className="p-5 md:p-6 rounded-lg border-2 border-border hover:border-primary/50 transition-colors"
             >
-              <h3 className="text-lg md:text-xl font-heading font-semibold mb-3 text-foreground">{client.title}</h3>
-              <p className="text-muted-foreground leading-relaxed text-sm">{client.desc}</p>
+              <h3 className="text-lg md:text-xl font-heading font-semibold mb-3 text-foreground">
+                <EditableText
+                  value={client.title}
+                  onSave={(val) => updateClient(index, "title", val)}
+                />
+              </h3>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                <EditableText
+                  value={client.description}
+                  onSave={(val) => updateClient(index, "description", val)}
+                  multiline
+                />
+              </p>
             </motion.div>
           ))}
         </div>

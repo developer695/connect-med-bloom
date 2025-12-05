@@ -11,24 +11,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { exportToWord, exportToPDF } from "@/utils/exportProposal";
 import { useToast } from "@/hooks/use-toast";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 interface ExportDialogProps {
-  pdfElementId?: string;
+  totalPages: number;
+  goToPage: (index: number) => void;
 }
 
-const ExportDialog = ({ pdfElementId }: ExportDialogProps) => {
+const ExportDialog = ({ totalPages, goToPage }: ExportDialogProps) => {
   const [isExporting, setIsExporting] = useState<"pdf" | "word" | null>(null);
   const { toast } = useToast();
+  const { content } = useProposalContent();
 
   const handleExportPDF = async () => {
     setIsExporting("pdf");
     try {
-      if (pdfElementId) {
-        await exportToPDF(pdfElementId);
-      }
+      await exportToPDF(totalPages, goToPage);
       toast({
         title: "PDF Exported",
-        description: "Your proposal has been downloaded as a PDF.",
+        description: "Your complete proposal has been downloaded as a PDF.",
       });
     } catch (error) {
       toast({
@@ -44,7 +45,7 @@ const ExportDialog = ({ pdfElementId }: ExportDialogProps) => {
   const handleExportWord = async () => {
     setIsExporting("word");
     try {
-      await exportToWord();
+      await exportToWord(content);
       toast({
         title: "Word Document Exported",
         description: "Your proposal has been downloaded as a Word document.",
@@ -100,7 +101,7 @@ const ExportDialog = ({ pdfElementId }: ExportDialogProps) => {
             variant="outline"
             className="justify-start gap-3 h-auto py-4"
             onClick={handleExportPDF}
-            disabled={isExporting !== null || !pdfElementId}
+            disabled={isExporting !== null}
           >
             {isExporting === "pdf" ? (
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -112,7 +113,7 @@ const ExportDialog = ({ pdfElementId }: ExportDialogProps) => {
             <div className="text-left">
               <div className="font-semibold">PDF Document</div>
               <div className="text-xs text-muted-foreground">
-                Download current page as PDF
+                Download all {totalPages} pages as PDF
               </div>
             </div>
           </Button>

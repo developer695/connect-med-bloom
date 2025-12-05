@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Mail, MapPin, Globe, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import EditableText from "../EditableText";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const nextSteps = [
   { num: 1, title: "Initial Consultation", desc: "Schedule a complimentary consultation to discuss your needs" },
@@ -10,6 +12,9 @@ const nextSteps = [
 ];
 
 const ContactPage = () => {
+  const { content, updateContent } = useProposalContent();
+  const { contact } = content;
+
   return (
     <div className="h-full p-8 md:p-16 bg-gradient-to-br from-card to-secondary/50 overflow-auto">
       <div className="max-w-5xl mx-auto">
@@ -19,8 +24,18 @@ const ContactPage = () => {
           transition={{ duration: 0.5 }}
           className="mb-8 md:mb-12"
         >
-          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">GET IN TOUCH</div>
-          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">Contact Us</h2>
+          <div className="text-sm font-semibold mb-2 text-primary tracking-wide">
+            <EditableText
+              value={contact.sectionLabel}
+              onSave={(val) => updateContent("contact", { sectionLabel: val })}
+            />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-heading font-light text-foreground">
+            <EditableText
+              value={contact.title}
+              onSave={(val) => updateContent("contact", { title: val })}
+            />
+          </h2>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -31,25 +46,56 @@ const ContactPage = () => {
           >
             <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 md:mb-6 text-foreground">Let's Start a Conversation</h3>
             <p className="text-muted-foreground leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
-              We welcome the opportunity to discuss how UnifiMed can support your commercialization objectives. Whether you're an early-stage founder, an established MedTech company, or an investor, we're here to help.
+              <EditableText
+                value={contact.intro}
+                onSave={(val) => updateContent("contact", { intro: val })}
+                multiline
+              />
             </p>
 
             <div className="space-y-4">
-              {[
-                { icon: Mail, label: "Email", value: "info@unifimed.com" },
-                { icon: MapPin, label: "Location", value: "United States" },
-                { icon: Globe, label: "Website", value: "unifimed.com" }
-              ].map((contact) => (
-                <div key={contact.label} className="flex items-center gap-4">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
-                    <contact.icon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-xs md:text-sm text-muted-foreground">{contact.label}</div>
-                    <div className="font-semibold text-foreground text-sm md:text-base">{contact.value}</div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
+                  <Mail className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Email</div>
+                  <div className="font-semibold text-foreground text-sm md:text-base">
+                    <EditableText
+                      value={contact.email}
+                      onSave={(val) => updateContent("contact", { email: val })}
+                    />
                   </div>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
+                  <MapPin className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Location</div>
+                  <div className="font-semibold text-foreground text-sm md:text-base">
+                    <EditableText
+                      value={contact.location}
+                      onSave={(val) => updateContent("contact", { location: val })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
+                  <Globe className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xs md:text-sm text-muted-foreground">Website</div>
+                  <div className="font-semibold text-foreground text-sm md:text-base">
+                    <EditableText
+                      value={contact.website}
+                      onSave={(val) => updateContent("contact", { website: val })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
 
