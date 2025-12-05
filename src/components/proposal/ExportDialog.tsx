@@ -13,12 +13,7 @@ import { exportToWord, exportToPDF } from "@/utils/exportProposal";
 import { useToast } from "@/hooks/use-toast";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
-interface ExportDialogProps {
-  totalPages: number;
-  goToPage: (index: number) => void;
-}
-
-const ExportDialog = ({ totalPages, goToPage }: ExportDialogProps) => {
+const ExportDialog = () => {
   const [isExporting, setIsExporting] = useState<"pdf" | "word" | null>(null);
   const { toast } = useToast();
   const { content } = useProposalContent();
@@ -26,12 +21,13 @@ const ExportDialog = ({ totalPages, goToPage }: ExportDialogProps) => {
   const handleExportPDF = async () => {
     setIsExporting("pdf");
     try {
-      await exportToPDF(totalPages, goToPage);
+      await exportToPDF(content);
       toast({
         title: "PDF Exported",
         description: "Your complete proposal has been downloaded as a PDF.",
       });
     } catch (error) {
+      console.error("PDF export error:", error);
       toast({
         title: "Export Failed",
         description: "There was an error exporting the PDF. Please try again.",
@@ -51,6 +47,7 @@ const ExportDialog = ({ totalPages, goToPage }: ExportDialogProps) => {
         description: "Your proposal has been downloaded as a Word document.",
       });
     } catch (error) {
+      console.error("Word export error:", error);
       toast({
         title: "Export Failed",
         description: "There was an error exporting the document. Please try again.",
@@ -113,7 +110,7 @@ const ExportDialog = ({ totalPages, goToPage }: ExportDialogProps) => {
             <div className="text-left">
               <div className="font-semibold">PDF Document</div>
               <div className="text-xs text-muted-foreground">
-                Download all {totalPages} pages as PDF
+                Download all 9 pages as PDF
               </div>
             </div>
           </Button>
