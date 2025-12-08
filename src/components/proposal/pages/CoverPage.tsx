@@ -10,16 +10,11 @@ const CoverPage = () => {
 
   return (
     <div className="h-full flex flex-col justify-between p-8 md:p-16 bg-card relative overflow-hidden">
-      {/* Decorative circles - now editable */}
+      {/* Decorative circle - positioned half off the page */}
       <EditableShape
         id="cover-circle-1"
-        defaultConfig={{ x: 0, y: 0, width: 256, height: 256 }}
+        defaultConfig={{ x: -128, y: -128, width: 256, height: 256 }}
         className="rounded-full bg-primary/10"
-      />
-      <EditableShape
-        id="cover-circle-2"
-        defaultConfig={{ x: -100, y: -100, width: 384, height: 384 }}
-        className="rounded-full bg-primary/5 !left-auto !top-auto right-0 bottom-0"
       />
 
       <motion.div
