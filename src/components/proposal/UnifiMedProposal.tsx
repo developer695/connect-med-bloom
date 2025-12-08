@@ -25,10 +25,10 @@ const pages = [
   { id: "solutions", label: "Solutions", component: SolutionsPage },
   { id: "markets", label: "Markets", component: MarketsPage },
   { id: "clients", label: "Clients", component: ClientsPage },
-  { id: "team", label: "Team", component: TeamPage },
   { id: "proposal", label: "Proposal", component: ProposalPage },
+  { id: "team", label: "Team", component: TeamPage },
   { id: "value", label: "Value", component: ValuePage },
-  { id: "contact", label: "Contact", component: ContactPage },
+  { id: "contact", label: "Close", component: ContactPage },
 ];
 
 const UnifiMedProposal = () => {

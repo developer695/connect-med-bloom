@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
-import { Mail, MapPin, Globe, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CheckCircle, Handshake, Calendar, FileText } from "lucide-react";
 import EditableText from "../EditableText";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
@@ -14,14 +13,20 @@ const ContactPage = () => {
     updateContent("contact", { nextSteps: newSteps });
   };
 
+  const stepIcons = [Calendar, FileText, Handshake, CheckCircle];
+
   return (
-    <div className="h-full p-8 md:p-16 bg-gradient-to-br from-card to-secondary/50 overflow-auto">
-      <div className="max-w-5xl mx-auto">
+    <div className="h-full p-8 md:p-16 bg-card overflow-auto relative">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-primary/5" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-primary/3" />
+      
+      <div className="max-w-4xl mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 md:mb-12"
+          className="mb-8 md:mb-12 text-center"
         >
           <div className="text-sm font-semibold mb-2 text-primary tracking-wide">
             <EditableText
@@ -37,148 +42,129 @@ const ContactPage = () => {
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 md:mb-6 text-foreground">
-              <EditableText
-                value={contact.conversationTitle}
-                onSave={(val) => updateContent("contact", { conversationTitle: val })}
-              />
-            </h3>
-            <p className="text-muted-foreground leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
-              <EditableText
-                value={contact.intro}
-                onSave={(val) => updateContent("contact", { intro: val })}
-                multiline
-              />
-            </p>
+        {/* Thank you message */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-center mb-10 md:mb-14"
+        >
+          <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 text-foreground">
+            <EditableText
+              value={contact.conversationTitle}
+              onSave={(val) => updateContent("contact", { conversationTitle: val })}
+            />
+          </h3>
+          <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-sm md:text-base">
+            <EditableText
+              value={contact.intro}
+              onSave={(val) => updateContent("contact", { intro: val })}
+              multiline
+            />
+          </p>
+        </motion.div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
-                  <Mail className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Email</div>
-                  <div className="font-semibold text-foreground text-sm md:text-base">
-                    <EditableText
-                      value={contact.email}
-                      onSave={(val) => updateContent("contact", { email: val })}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
-                  <MapPin className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Location</div>
-                  <div className="font-semibold text-foreground text-sm md:text-base">
-                    <EditableText
-                      value={contact.location}
-                      onSave={(val) => updateContent("contact", { location: val })}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary-light flex items-center justify-center">
-                  <Globe className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                </div>
-                <div>
-                  <div className="text-xs md:text-sm text-muted-foreground">Website</div>
-                  <div className="font-semibold text-foreground text-sm md:text-base">
-                    <EditableText
-                      value={contact.website}
-                      onSave={(val) => updateContent("contact", { website: val })}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+        {/* Next Steps */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-10 md:mb-14"
+        >
+          <h3 className="text-lg md:text-xl font-heading font-semibold mb-6 text-center text-foreground">
+            <EditableText
+              value={contact.nextStepsTitle}
+              onSave={(val) => updateContent("contact", { nextStepsTitle: val })}
+            />
+          </h3>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-card rounded-lg p-6 md:p-8 shadow-elevated"
-          >
-            <h3 className="text-lg md:text-xl font-heading font-semibold mb-6 text-foreground">
-              <EditableText
-                value={contact.nextStepsTitle}
-                onSave={(val) => updateContent("contact", { nextStepsTitle: val })}
-              />
-            </h3>
-
-            <div className="space-y-5 md:space-y-6">
-              {contact.nextSteps.map((step, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {contact.nextSteps.map((step, index) => {
+              const IconComponent = stepIcons[index] || CheckCircle;
+              return (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
+                  className="flex items-start gap-4 p-5 rounded-lg bg-muted/30 border border-border/50"
                 >
-                  <div className="flex items-center gap-3 mb-1 md:mb-2">
-                    <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs md:text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <h4 className="font-heading font-semibold text-foreground text-sm md:text-base">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <IconComponent className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-heading font-semibold text-foreground mb-1 text-sm md:text-base">
                       <EditableText
                         value={step.title}
                         onSave={(val) => updateNextStep(index, "title", val)}
                       />
                     </h4>
+                    <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+                      <EditableText
+                        value={step.description}
+                        onSave={(val) => updateNextStep(index, "description", val)}
+                      />
+                    </p>
                   </div>
-                  <p className="text-xs md:text-sm text-muted-foreground ml-9 md:ml-11">
-                    <EditableText
-                      value={step.description}
-                      onSave={(val) => updateNextStep(index, "description", val)}
-                    />
-                  </p>
                 </motion.div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </motion.div>
 
-            <div className="mt-6 md:mt-8 pt-6 border-t border-border">
-              <Button className="w-full" size="lg">
-                <EditableText
-                  value={contact.ctaButton}
-                  onSave={(val) => updateContent("contact", { ctaButton: val })}
-                />
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-
+        {/* Contact information - simplified for proposal closeout */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="mt-12 md:mt-16 p-6 md:p-8 rounded-lg bg-primary-light cursor-pointer hover:bg-primary/15 transition-colors"
+          className="p-6 md:p-8 rounded-lg bg-primary/10 text-center"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg md:text-xl font-heading font-semibold mb-2 text-foreground">
+          <h3 className="text-lg md:text-xl font-heading font-semibold mb-4 text-foreground">
+            <EditableText
+              value={contact.ctaButton}
+              onSave={(val) => updateContent("contact", { ctaButton: val })}
+            />
+          </h3>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">
                 <EditableText
-                  value={contact.academyTitle}
-                  onSave={(val) => updateContent("contact", { academyTitle: val })}
+                  value={contact.email}
+                  onSave={(val) => updateContent("contact", { email: val })}
                 />
-              </h3>
-              <p className="text-muted-foreground text-sm md:text-base">
-                <EditableText
-                  value={contact.academyText}
-                  onSave={(val) => updateContent("contact", { academyText: val })}
-                />
-              </p>
+              </span>
             </div>
-            <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+            <div className="hidden md:block w-1 h-1 rounded-full bg-border" />
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-foreground">
+                <EditableText
+                  value={contact.website}
+                  onSave={(val) => updateContent("contact", { website: val })}
+                />
+              </span>
+            </div>
           </div>
+        </motion.div>
+
+        {/* Footer signature */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="mt-10 md:mt-14 text-center"
+        >
+          <p className="text-sm text-muted-foreground mb-2">
+            <EditableText
+              value={contact.academyText}
+              onSave={(val) => updateContent("contact", { academyText: val })}
+            />
+          </p>
+          <p className="text-lg font-heading font-semibold text-primary">
+            <EditableText
+              value={contact.academyTitle}
+              onSave={(val) => updateContent("contact", { academyTitle: val })}
+            />
+          </p>
         </motion.div>
       </div>
     </div>
