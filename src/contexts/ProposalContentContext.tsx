@@ -79,8 +79,10 @@ export interface ProposalContent {
     scopeText: string;
     deliverablesTitle: string;
     deliverables: { title: string; description: string }[];
+    hiddenDeliverables: { title: string; description: string }[];
     packagesTitle: string;
     packages: { name: string; description: string; price: string; duration: string; features: string[] }[];
+    hiddenPackages: { name: string; description: string; price: string; duration: string; features: string[] }[];
     termsTitle: string;
     termsText: string;
   };
@@ -228,6 +230,7 @@ const defaultContent: ProposalContent = {
       { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations." },
       { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities." },
     ],
+    hiddenDeliverables: [],
     packagesTitle: "Engagement Options",
     packages: [
       { 
@@ -252,6 +255,7 @@ const defaultContent: ProposalContent = {
         features: ["All Accelerate deliverables", "Hands-on execution support", "Regulatory submission management", "Commercial launch support", "Ongoing strategic advisory"]
       },
     ],
+    hiddenPackages: [],
     termsTitle: "Engagement Terms",
     termsText: "Fees are structured as fixed-price engagements with milestone-based payments. Additional services beyond the defined scope can be added on a time-and-materials basis. We also offer success-based fee structures and equity participation arrangements for qualified opportunities. Specific terms will be outlined in the formal engagement agreement following mutual agreement on scope and objectives.",
   },
@@ -327,7 +331,12 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
         letter: { ...defaultContent.letter, ...parsed.letter },
         about: { ...defaultContent.about, ...parsed.about },
         team: { ...defaultContent.team, ...parsed.team },
-        proposal: { ...defaultContent.proposal, ...parsed.proposal },
+        proposal: { 
+          ...defaultContent.proposal, 
+          ...parsed.proposal,
+          hiddenDeliverables: parsed.proposal?.hiddenDeliverables || [],
+          hiddenPackages: parsed.proposal?.hiddenPackages || [],
+        },
         value: { ...defaultContent.value, ...parsed.value },
         contact: { ...defaultContent.contact, ...parsed.contact },
         clients: mergedClients,
