@@ -1,10 +1,27 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 
 export interface ShapeConfig {
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+export interface Deliverable {
+  title: string;
+  description: string;
+  rate: number; // hourly rate in dollars
+  hours: number; // estimated hours
+}
+
+export interface Package {
+  name: string;
+  description: string;
+  price: string;
+  duration: string;
+  features: string[];
+  includedDeliverables: string[]; // titles of included deliverables
+  autoCalculate: boolean; // whether to auto-calculate price from deliverables
 }
 
 export interface ProposalContent {
@@ -79,11 +96,11 @@ export interface ProposalContent {
     scopeTitle: string;
     scopeText: string;
     deliverablesTitle: string;
-    deliverables: { title: string; description: string }[];
-    hiddenDeliverables: { title: string; description: string }[];
+    deliverables: Deliverable[];
+    hiddenDeliverables: Deliverable[];
     packagesTitle: string;
-    packages: { name: string; description: string; price: string; duration: string; features: string[] }[];
-    hiddenPackages: { name: string; description: string; price: string; duration: string; features: string[] }[];
+    packages: Package[];
+    hiddenPackages: Package[];
     termsTitle: string;
     termsText: string;
   };
@@ -226,12 +243,12 @@ const defaultContent: ProposalContent = {
     scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
     deliverablesTitle: "Key Deliverables",
     deliverables: [
-      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations." },
-      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning." },
-      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives." },
-      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations." },
-      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations." },
-      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities." },
+      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, hours: 40 },
+      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, hours: 60 },
+      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, hours: 50 },
+      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, hours: 45 },
+      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, hours: 55 },
+      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, hours: 35 },
     ],
     hiddenDeliverables: [],
     packagesTitle: "Engagement Options",
@@ -241,21 +258,27 @@ const defaultContent: ProposalContent = {
         description: "Strategic assessment and planning", 
         price: "$75,000", 
         duration: "3-month engagement",
-        features: ["Market opportunity assessment", "Regulatory pathway analysis", "Competitive landscape review", "Strategic recommendations report"]
+        features: [],
+        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document"],
+        autoCalculate: true
       },
       { 
         name: "Accelerate", 
         description: "Comprehensive commercialization support", 
         price: "$150,000", 
         duration: "6-month engagement",
-        features: ["All Foundation deliverables", "Clinical evidence planning", "Commercial strategy development", "Reimbursement pathway analysis", "Investor materials preparation"]
+        features: [],
+        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis"],
+        autoCalculate: true
       },
       { 
         name: "Enterprise", 
         description: "Full-service partnership", 
         price: "Custom", 
         duration: "12+ month engagement",
-        features: ["All Accelerate deliverables", "Hands-on execution support", "Regulatory submission management", "Commercial launch support", "Ongoing strategic advisory"]
+        features: [],
+        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis", "Investor Materials"],
+        autoCalculate: false
       },
     ],
     hiddenPackages: [],
@@ -304,6 +327,44 @@ const defaultContent: ProposalContent = {
   shapes: {},
 };
 
+// Helper to calculate price from deliverables
+export const calculatePackagePrice = (
+  includedDeliverables: string[],
+  allDeliverables: Deliverable[]
+): number => {
+  return includedDeliverables.reduce((total, title) => {
+    const deliverable = allDeliverables.find(d => d.title === title);
+    if (deliverable) {
+      return total + (deliverable.rate * deliverable.hours);
+    }
+    return total;
+  }, 0);
+};
+
+// Helper to calculate total hours from deliverables
+export const calculatePackageHours = (
+  includedDeliverables: string[],
+  allDeliverables: Deliverable[]
+): number => {
+  return includedDeliverables.reduce((total, title) => {
+    const deliverable = allDeliverables.find(d => d.title === title);
+    if (deliverable) {
+      return total + deliverable.hours;
+    }
+    return total;
+  }, 0);
+};
+
+// Format price as currency
+export const formatPrice = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
 interface ProposalContextType {
   content: ProposalContent;
   updateContent: <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => void;
@@ -314,21 +375,64 @@ interface ProposalContextType {
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
 
+// Helper to migrate old deliverable format to new format with rate/hours
+const migrateDeliverable = (d: any): Deliverable => {
+  return {
+    title: d.title || "",
+    description: d.description || "",
+    rate: d.rate ?? 250,
+    hours: d.hours ?? 40,
+  };
+};
+
+// Helper to migrate old package format to new format with includedDeliverables
+const migratePackage = (p: any, index: number, allDeliverableTitles: string[]): Package => {
+  // Default included deliverables based on package tier
+  const defaultInclusions: string[][] = [
+    allDeliverableTitles.slice(0, 2), // Foundation: first 2
+    allDeliverableTitles.slice(0, 5), // Accelerate: first 5
+    allDeliverableTitles, // Enterprise: all
+  ];
+  
+  return {
+    name: p.name || "",
+    description: p.description || "",
+    price: p.price || "",
+    duration: p.duration || "",
+    features: p.features || [],
+    includedDeliverables: p.includedDeliverables || defaultInclusions[index] || [],
+    autoCalculate: p.autoCalculate ?? (index < 2), // Auto-calculate for Foundation and Accelerate
+  };
+};
+
 export const ProposalContentProvider = ({ children }: { children: ReactNode }) => {
   const [content, setContent] = useState<ProposalContent>(() => {
     const saved = localStorage.getItem("proposal-content");
     if (saved) {
       const parsed = JSON.parse(saved);
       // Deep merge with defaults to ensure new properties are included
-      // Special handling for arrays to ensure new default items are included
       const mergedClients = {
         ...defaultContent.clients,
         ...parsed.clients,
-        // If default has more clientTypes than saved, include the new ones
         clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
           ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
           : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
       };
+      
+      // Migrate deliverables to new format
+      const migratedDeliverables = (parsed.proposal?.deliverables || defaultContent.proposal.deliverables)
+        .map(migrateDeliverable);
+      const migratedHiddenDeliverables = (parsed.proposal?.hiddenDeliverables || [])
+        .map(migrateDeliverable);
+      
+      // Get all deliverable titles for package migration
+      const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
+      
+      // Migrate packages to new format
+      const migratedPackages = (parsed.proposal?.packages || defaultContent.proposal.packages)
+        .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
+      const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
+        .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
       
       return {
         ...defaultContent,
@@ -339,8 +443,10 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
         proposal: { 
           ...defaultContent.proposal, 
           ...parsed.proposal,
-          hiddenDeliverables: parsed.proposal?.hiddenDeliverables || [],
-          hiddenPackages: parsed.proposal?.hiddenPackages || [],
+          deliverables: migratedDeliverables,
+          hiddenDeliverables: migratedHiddenDeliverables,
+          packages: migratedPackages,
+          hiddenPackages: migratedHiddenPackages,
         },
         value: { 
           ...defaultContent.value, 
