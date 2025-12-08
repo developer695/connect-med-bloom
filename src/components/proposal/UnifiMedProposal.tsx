@@ -25,9 +25,9 @@ const pages = [
   { id: "solutions", label: "Solutions", component: SolutionsPage },
   { id: "markets", label: "Markets", component: MarketsPage },
   { id: "clients", label: "Clients", component: ClientsPage },
-  { id: "proposal", label: "Proposal", component: ProposalPage },
+  { id: "value", label: "Why UnifiMed", component: ValuePage },
   { id: "team", label: "Team", component: TeamPage },
-  { id: "value", label: "Value", component: ValuePage },
+  { id: "proposal", label: "Proposal", component: ProposalPage },
   { id: "contact", label: "Close", component: ContactPage },
 ];
 
