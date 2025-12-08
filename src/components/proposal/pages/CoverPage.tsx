@@ -10,10 +10,10 @@ const CoverPage = () => {
 
   return (
     <div className="h-full flex flex-col justify-between p-8 md:p-16 bg-card relative overflow-hidden">
-      {/* Decorative circle - positioned half off the page */}
+      {/* Decorative circle - positioned as half circle on left edge */}
       <EditableShape
         id="cover-circle-1"
-        defaultConfig={{ x: -128, y: -128, width: 256, height: 256 }}
+        defaultConfig={{ x: -180, y: 80, width: 320, height: 320 }}
         className="rounded-full bg-primary/10"
       />
 
