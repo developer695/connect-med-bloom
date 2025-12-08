@@ -8,8 +8,9 @@ import {
   Package, 
   calculatePackagePrice, 
   calculatePackageDurationMonths,
-  formatPrice,
-  convertToHours
+  calculateDeliverableHours,
+  calculateDeliverableCost,
+  formatPrice
 } from "@/contexts/ProposalContentContext";
 
 const ProposalPage = () => {
@@ -102,8 +103,8 @@ const ProposalPage = () => {
 
   // Get time display string for a deliverable
   const getTimeDisplay = (deliverable: Deliverable): string => {
-    const unitLabels = { hours: 'hr', weeks: 'wk', months: 'mo' };
-    return `${deliverable.timeValue} ${unitLabels[deliverable.timeUnit]}${deliverable.timeValue !== 1 ? 's' : ''}`;
+    const unitLabel = deliverable.durationUnit === 'weeks' ? 'wk' : 'mo';
+    return `${deliverable.hoursPerPeriod} hrs/${unitLabel} × ${deliverable.duration} ${deliverable.durationUnit}`;
   };
 
   return (
@@ -173,8 +174,8 @@ const ProposalPage = () => {
             getItemKey={(item, index) => `${item.title}-${index}`}
             itemsLabel="deliverables"
             renderItem={(deliverable, index) => {
-              const hours = convertToHours(deliverable.timeValue, deliverable.timeUnit);
-              const total = deliverable.rate * hours;
+              const totalHours = calculateDeliverableHours(deliverable);
+              const total = calculateDeliverableCost(deliverable);
               
               return (
                 <div className="bg-muted/30 rounded-lg p-4 border border-border/50 h-full pl-8">
@@ -192,9 +193,10 @@ const ProposalPage = () => {
                     />
                   </p>
                   {isEditMode && (
-                    <div className="mt-3 pt-3 border-t border-border/30 flex gap-4 text-xs text-muted-foreground">
+                    <div className="mt-3 pt-3 border-t border-border/30 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>Rate: ${deliverable.rate}/hr</span>
-                      <span>Duration: {getTimeDisplay(deliverable)}</span>
+                      <span>{getTimeDisplay(deliverable)}</span>
+                      <span>({totalHours} total hrs)</span>
                       <span className="text-primary font-medium">
                         Total: {formatPrice(total)}
                       </span>

@@ -1,5 +1,5 @@
 import { Plus, DollarSign, Clock } from "lucide-react";
-import { useProposalContent, Deliverable, Package, TimeUnit, formatPrice, convertToHours } from "@/contexts/ProposalContentContext";
+import { useProposalContent, Deliverable, Package, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,15 +19,21 @@ const EditSidebar = () => {
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
-  const updateDeliverableTimeValue = (index: number, timeValue: number) => {
+  const updateDeliverableHoursPerPeriod = (index: number, hoursPerPeriod: number) => {
     const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], timeValue };
+    newDeliverables[index] = { ...newDeliverables[index], hoursPerPeriod };
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
-  const updateDeliverableTimeUnit = (index: number, timeUnit: TimeUnit) => {
+  const updateDeliverableDuration = (index: number, duration: number) => {
     const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], timeUnit };
+    newDeliverables[index] = { ...newDeliverables[index], duration };
+    updateContent("proposal", { deliverables: newDeliverables });
+  };
+
+  const updateDeliverableDurationUnit = (index: number, durationUnit: DurationUnit) => {
+    const newDeliverables = [...proposal.deliverables];
+    newDeliverables[index] = { ...newDeliverables[index], durationUnit };
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
@@ -70,14 +76,6 @@ const EditSidebar = () => {
     (value.hiddenPillars?.length || 0) > 0 ||
     (value.hiddenDifferentiators?.length || 0) > 0;
 
-  const getTimeUnitLabel = (unit: TimeUnit) => {
-    switch (unit) {
-      case 'hours': return 'hrs';
-      case 'weeks': return 'wks';
-      case 'months': return 'mos';
-    }
-  };
-
   return (
     <div className="w-72 bg-muted/50 border-l border-border flex flex-col h-full">
       <div className="p-3 border-b border-border bg-background">
@@ -95,8 +93,8 @@ const EditSidebar = () => {
             </h4>
             <div className="space-y-3">
               {proposal.deliverables.map((deliverable, index) => {
-                const hours = convertToHours(deliverable.timeValue, deliverable.timeUnit);
-                const total = deliverable.rate * hours;
+                const totalHours = calculateDeliverableHours(deliverable);
+                const total = calculateDeliverableCost(deliverable);
                 
                 return (
                   <div 
@@ -119,28 +117,35 @@ const EditSidebar = () => {
                           />
                         </div>
                       </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Hours per {deliverable.durationUnit === 'weeks' ? 'Week' : 'Month'}</Label>
+                        <Input
+                          type="number"
+                          value={deliverable.hoursPerPeriod}
+                          onChange={(e) => updateDeliverableHoursPerPeriod(index, parseInt(e.target.value) || 0)}
+                          className="h-7 text-xs"
+                        />
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Duration</Label>
                           <Input
                             type="number"
-                            step="0.5"
-                            value={deliverable.timeValue}
-                            onChange={(e) => updateDeliverableTimeValue(index, parseFloat(e.target.value) || 0)}
+                            value={deliverable.duration}
+                            onChange={(e) => updateDeliverableDuration(index, parseInt(e.target.value) || 0)}
                             className="h-7 text-xs"
                           />
                         </div>
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Unit</Label>
                           <Select
-                            value={deliverable.timeUnit}
-                            onValueChange={(val) => updateDeliverableTimeUnit(index, val as TimeUnit)}
+                            value={deliverable.durationUnit}
+                            onValueChange={(val) => updateDeliverableDurationUnit(index, val as DurationUnit)}
                           >
                             <SelectTrigger className="h-7 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="hours">Hours</SelectItem>
                               <SelectItem value="weeks">Weeks</SelectItem>
                               <SelectItem value="months">Months</SelectItem>
                             </SelectContent>
@@ -148,13 +153,17 @@ const EditSidebar = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-border/30 flex justify-between items-center">
-                      <span className="text-[10px] text-muted-foreground">
-                        {hours} hrs @ ${deliverable.rate}/hr
-                      </span>
-                      <span className="text-xs text-primary font-medium">
-                        {formatPrice(total)}
-                      </span>
+                    <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>{deliverable.hoursPerPeriod} hrs/{deliverable.durationUnit === 'weeks' ? 'wk' : 'mo'} × {deliverable.duration} {deliverable.durationUnit}</span>
+                        <span>{totalHours} total hrs</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[10px] text-muted-foreground">${deliverable.rate}/hr</span>
+                        <span className="text-xs text-primary font-medium">
+                          {formatPrice(total)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
