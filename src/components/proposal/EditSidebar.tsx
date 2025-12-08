@@ -1,17 +1,21 @@
-import { Plus, DollarSign, Clock } from "lucide-react";
+import { useState } from "react";
+import { Plus, DollarSign, Briefcase, ChevronDown, ChevronRight, Check } from "lucide-react";
 import { useProposalContent, Deliverable, Package, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const EditSidebar = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
+  const [expandedService, setExpandedService] = useState<number | null>(null);
 
   if (!isEditMode) return null;
 
-  const { proposal, value } = content;
+  const { proposal, value, solutions } = content;
 
   const updateDeliverableRate = (index: number, rate: number) => {
     const newDeliverables = [...proposal.deliverables];
@@ -56,6 +60,32 @@ const EditSidebar = () => {
     const newPackages = [...proposal.packages, item];
     const newHidden = (proposal.hiddenPackages || []).filter(p => p.name !== item.name);
     updateContent("proposal", { packages: newPackages, hiddenPackages: newHidden });
+  };
+
+  // Service template handlers
+  const updateServiceDescription = (index: number, description: string) => {
+    const newServices = [...solutions.services];
+    newServices[index] = { ...newServices[index], description };
+    updateContent("solutions", { services: newServices });
+  };
+
+  const toggleServiceDeliverable = (serviceIndex: number, deliverableTitle: string) => {
+    const newServices = [...solutions.services];
+    const service = newServices[serviceIndex];
+    const currentDeliverables = service.defaultDeliverables || [];
+    
+    if (currentDeliverables.includes(deliverableTitle)) {
+      newServices[serviceIndex] = {
+        ...service,
+        defaultDeliverables: currentDeliverables.filter(d => d !== deliverableTitle),
+      };
+    } else {
+      newServices[serviceIndex] = {
+        ...service,
+        defaultDeliverables: [...currentDeliverables, deliverableTitle],
+      };
+    }
+    updateContent("solutions", { services: newServices });
   };
 
   const handleAddPillar = (item: { title: string; description: string }) => {
@@ -194,6 +224,75 @@ const EditSidebar = () => {
                     />
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Service Templates Section */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
+              <Briefcase className="w-3 h-3" />
+              Service Templates
+            </h4>
+            <div className="space-y-2">
+              {solutions.services.map((service, index) => (
+                <Collapsible
+                  key={`service-${index}`}
+                  open={expandedService === index}
+                  onOpenChange={(open) => setExpandedService(open ? index : null)}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                      <span className="text-xs font-medium text-foreground truncate flex-1 text-left">
+                        {service.title}
+                      </span>
+                      {expandedService === index ? (
+                        <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Description</Label>
+                        <Textarea
+                          value={service.description}
+                          onChange={(e) => updateServiceDescription(index, e.target.value)}
+                          className="text-xs min-h-[80px] mt-1"
+                          placeholder="Service description..."
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground mb-2 block">Default Deliverables</Label>
+                        <div className="space-y-1">
+                          {proposal.deliverables.map((deliverable) => {
+                            const isIncluded = service.defaultDeliverables?.includes(deliverable.title);
+                            return (
+                              <button
+                                key={deliverable.title}
+                                onClick={() => toggleServiceDeliverable(index, deliverable.title)}
+                                className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted/50 transition-colors text-left"
+                              >
+                                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${
+                                  isIncluded 
+                                    ? 'bg-primary border-primary text-primary-foreground' 
+                                    : 'border-muted-foreground/30'
+                                }`}>
+                                  {isIncluded && <Check className="w-2.5 h-2.5" />}
+                                </span>
+                                <span className={`text-[11px] ${isIncluded ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  {deliverable.title}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               ))}
             </div>
           </div>
