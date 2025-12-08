@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import UnifiMedLogo from "../UnifiMedLogo";
 import EditableText from "../EditableText";
 import EditableShape from "../EditableShape";
+import EditableImage from "../EditableImage";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const CoverPage = () => {
@@ -46,13 +47,28 @@ const CoverPage = () => {
               multiline
             />
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground mb-8">
+          <p className="text-lg md:text-xl text-muted-foreground mb-6">
             <EditableText
               value={cover.subtitle}
               onSave={(val) => updateContent("cover", { subtitle: val })}
               multiline
             />
           </p>
+          
+          {/* Client Logo Upload */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <EditableImage
+              id="client-logo"
+              image={cover.clientLogo}
+              onImageChange={(base64) => updateContent("cover", { clientLogo: base64 })}
+              defaultConfig={{ x: 0, y: 0, width: 180, height: 80 }}
+              placeholder="Upload Client Logo"
+            />
+          </motion.div>
         </div>
       </motion.div>
 

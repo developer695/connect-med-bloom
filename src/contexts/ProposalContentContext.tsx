@@ -12,6 +12,7 @@ export interface ProposalContent {
     tagline: string;
     title: string;
     subtitle: string;
+    clientLogo?: string;
     date: string;
     company: string;
     email: string;
