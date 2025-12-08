@@ -225,7 +225,7 @@ const ProposalPage = () => {
           
           {/* Packages */}
           <div className="space-y-4">
-            <div className={`grid gap-6 ${proposal.packages.length === 1 ? 'grid-cols-1 max-w-md' : proposal.packages.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
+            <div className={`grid gap-6 ${proposal.packages.length === 1 ? 'grid-cols-1' : proposal.packages.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
               {proposal.packages.map((pkg, pkgIndex) => (
                 <motion.div
                   key={`${pkg.name}-${pkgIndex}`}
@@ -268,44 +268,49 @@ const ProposalPage = () => {
                       />
                     )}
                   </div>
-                  {isEditMode && pkg.autoCalculate && (
-                    <p className="text-xs text-muted-foreground/70 mb-2">Auto-calculated from deliverables</p>
-                  )}
-                  <p className="text-xs text-muted-foreground mb-4">
-                    {pkg.autoCalculate ? (
-                      <span>{getPackageDuration(pkg)}</span>
-                    ) : (
-                      <EditableText
-                        value={pkg.duration}
-                        onSave={(val) => updatePackage(pkgIndex, "duration", val)}
-                      />
-                    )}
-                  </p>
                   
-                  {/* Included Deliverables as checkmarks */}
-                  <ul className="space-y-2">
+                  {/* Engagement Duration Info */}
+                  <div className="text-xs text-muted-foreground mb-4 space-y-1">
+                    <p>{pkg.hoursPerWeek} hours/week • {pkg.durationWeeks} weeks</p>
+                    <p>{Math.round(pkg.durationWeeks / 4.345 * 10) / 10}-month engagement</p>
+                  </div>
+                  
+                  {/* Included Deliverables with Sub-Deliverables */}
+                  <div className="space-y-3">
                     {proposal.deliverables.map((deliverable) => {
                       const isIncluded = pkg.includedDeliverables?.includes(deliverable.title);
+                      const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
                       
                       if (isEditMode) {
                         // In edit mode, show all deliverables as toggleable
                         return (
-                          <li 
-                            key={deliverable.title} 
-                            className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors"
-                            onClick={() => toggleDeliverableInPackage(pkgIndex, deliverable.title)}
-                          >
-                            <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                              isIncluded 
-                                ? 'bg-primary border-primary text-primary-foreground' 
-                                : 'border-muted-foreground/30'
-                            }`}>
-                              {isIncluded && <Check className="w-3 h-3" />}
-                            </span>
-                            <span className={`text-sm ${isIncluded ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                              {deliverable.title}
-                            </span>
-                          </li>
+                          <div key={deliverable.title}>
+                            <div 
+                              className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors"
+                              onClick={() => toggleDeliverableInPackage(pkgIndex, deliverable.title)}
+                            >
+                              <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                                isIncluded 
+                                  ? 'bg-primary border-primary text-primary-foreground' 
+                                  : 'border-muted-foreground/30'
+                              }`}>
+                                {isIncluded && <Check className="w-3 h-3" />}
+                              </span>
+                              <span className={`text-sm font-medium ${isIncluded ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                                {deliverable.title}
+                              </span>
+                            </div>
+                            {isIncluded && selectedSubs.length > 0 && (
+                              <ul className="ml-6 mt-1 space-y-0.5">
+                                {selectedSubs.map((sub, subIdx) => (
+                                  <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
+                                    {sub.name}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
                         );
                       }
                       
@@ -313,15 +318,27 @@ const ProposalPage = () => {
                       if (!isIncluded) return null;
                       
                       return (
-                        <li key={deliverable.title} className="flex items-start gap-2">
-                          <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground">
-                            {deliverable.title}
-                          </span>
-                        </li>
+                        <div key={deliverable.title}>
+                          <div className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                            <span className="text-sm font-medium text-foreground">
+                              {deliverable.title}
+                            </span>
+                          </div>
+                          {selectedSubs.length > 0 && (
+                            <ul className="ml-6 mt-1 space-y-0.5">
+                              {selectedSubs.map((sub, subIdx) => (
+                                <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                  <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
+                                  {sub.name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 </motion.div>
               ))}
             </div>
