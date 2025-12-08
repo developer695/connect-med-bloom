@@ -448,57 +448,62 @@ const migratePackage = (p: any, index: number, allDeliverableTitles: string[]): 
 
 export const ProposalContentProvider = ({ children }: { children: ReactNode }) => {
   const [content, setContent] = useState<ProposalContent>(() => {
-    const saved = localStorage.getItem("proposal-content");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Deep merge with defaults to ensure new properties are included
-      const mergedClients = {
-        ...defaultContent.clients,
-        ...parsed.clients,
-        clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
-          ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
-          : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
-      };
-      
-      // Migrate deliverables to new format
-      const migratedDeliverables = (parsed.proposal?.deliverables || defaultContent.proposal.deliverables)
-        .map(migrateDeliverable);
-      const migratedHiddenDeliverables = (parsed.proposal?.hiddenDeliverables || [])
-        .map(migrateDeliverable);
-      
-      // Get all deliverable titles for package migration
-      const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
-      
-      // Migrate packages to new format
-      const migratedPackages = (parsed.proposal?.packages || defaultContent.proposal.packages)
-        .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-      const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
-        .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-      
-      return {
-        ...defaultContent,
-        ...parsed,
-        letter: { ...defaultContent.letter, ...parsed.letter },
-        about: { ...defaultContent.about, ...parsed.about },
-        team: { ...defaultContent.team, ...parsed.team },
-        proposal: { 
-          ...defaultContent.proposal, 
-          ...parsed.proposal,
-          deliverables: migratedDeliverables,
-          hiddenDeliverables: migratedHiddenDeliverables,
-          packages: migratedPackages,
-          hiddenPackages: migratedHiddenPackages,
-        },
-        value: { 
-          ...defaultContent.value, 
-          ...parsed.value,
-          hiddenPillars: parsed.value?.hiddenPillars || [],
-          hiddenDifferentiators: parsed.value?.hiddenDifferentiators || [],
-        },
-        contact: { ...defaultContent.contact, ...parsed.contact },
-        clients: mergedClients,
-        shapes: { ...defaultContent.shapes, ...parsed.shapes },
-      };
+    try {
+      const saved = localStorage.getItem("proposal-content");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Deep merge with defaults to ensure new properties are included
+        const mergedClients = {
+          ...defaultContent.clients,
+          ...parsed.clients,
+          clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
+            ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
+            : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
+        };
+        
+        // Migrate deliverables to new format
+        const migratedDeliverables = (parsed.proposal?.deliverables || defaultContent.proposal.deliverables)
+          .map(migrateDeliverable);
+        const migratedHiddenDeliverables = (parsed.proposal?.hiddenDeliverables || [])
+          .map(migrateDeliverable);
+        
+        // Get all deliverable titles for package migration
+        const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
+        
+        // Migrate packages to new format
+        const migratedPackages = (parsed.proposal?.packages || defaultContent.proposal.packages)
+          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
+        const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
+          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
+        
+        return {
+          ...defaultContent,
+          ...parsed,
+          letter: { ...defaultContent.letter, ...parsed.letter },
+          about: { ...defaultContent.about, ...parsed.about },
+          team: { ...defaultContent.team, ...parsed.team },
+          proposal: { 
+            ...defaultContent.proposal, 
+            ...parsed.proposal,
+            deliverables: migratedDeliverables,
+            hiddenDeliverables: migratedHiddenDeliverables,
+            packages: migratedPackages,
+            hiddenPackages: migratedHiddenPackages,
+          },
+          value: { 
+            ...defaultContent.value, 
+            ...parsed.value,
+            hiddenPillars: parsed.value?.hiddenPillars || [],
+            hiddenDifferentiators: parsed.value?.hiddenDifferentiators || [],
+          },
+          contact: { ...defaultContent.contact, ...parsed.contact },
+          clients: mergedClients,
+          shapes: { ...defaultContent.shapes, ...parsed.shapes },
+        };
+      }
+    } catch (error) {
+      console.error("Error loading saved content, resetting to defaults:", error);
+      localStorage.removeItem("proposal-content");
     }
     return defaultContent;
   });
