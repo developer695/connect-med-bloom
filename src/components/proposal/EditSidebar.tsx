@@ -14,6 +14,7 @@ const EditSidebar = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
   const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
   const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
+  const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
 
   if (!isEditMode) return null;
 
@@ -251,32 +252,57 @@ const EditSidebar = () => {
                         </div>
                         
                         {/* Sub-Deliverables */}
-                        {deliverable.subDeliverables && deliverable.subDeliverables.length > 0 && (
-                          <div className="pt-2 border-t border-border/30">
-                            <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
-                            <div className="space-y-1.5">
-                              {deliverable.subDeliverables.map((sub, subIndex) => (
-                                <div 
-                                  key={`sub-${index}-${subIndex}`}
-                                  className="flex items-center gap-2"
+                        <div className="pt-2 border-t border-border/30">
+                          <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
+                          <div className="space-y-1.5">
+                            {deliverable.subDeliverables?.map((sub, subIndex) => (
+                              <div 
+                                key={`sub-${index}-${subIndex}`}
+                                className="flex items-center gap-2"
+                              >
+                                <Checkbox
+                                  id={`sub-${index}-${subIndex}`}
+                                  checked={sub.included}
+                                  onCheckedChange={() => toggleSubDeliverable(index, subIndex)}
+                                  className="h-3.5 w-3.5"
+                                />
+                                <label 
+                                  htmlFor={`sub-${index}-${subIndex}`}
+                                  className="text-[10px] text-foreground cursor-pointer flex-1"
                                 >
-                                  <Checkbox
-                                    id={`sub-${index}-${subIndex}`}
-                                    checked={sub.included}
-                                    onCheckedChange={() => toggleSubDeliverable(index, subIndex)}
-                                    className="h-3.5 w-3.5"
-                                  />
-                                  <label 
-                                    htmlFor={`sub-${index}-${subIndex}`}
-                                    className="text-[10px] text-foreground cursor-pointer flex-1"
-                                  >
-                                    {sub.name}
-                                  </label>
-                                </div>
-                              ))}
+                                  {sub.name}
+                                </label>
+                              </div>
+                            ))}
+                            
+                            {/* Add new sub-deliverable */}
+                            <div className="flex items-center gap-1 mt-2">
+                              <Input
+                                value={newSubDeliverableInputs[index] || ''}
+                                onChange={(e) => setNewSubDeliverableInputs(prev => ({ ...prev, [index]: e.target.value }))}
+                                placeholder="New item name..."
+                                className="h-6 text-[10px] flex-1"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && newSubDeliverableInputs[index]?.trim()) {
+                                    addSubDeliverable(index, newSubDeliverableInputs[index].trim());
+                                    setNewSubDeliverableInputs(prev => ({ ...prev, [index]: '' }));
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={() => {
+                                  if (newSubDeliverableInputs[index]?.trim()) {
+                                    addSubDeliverable(index, newSubDeliverableInputs[index].trim());
+                                    setNewSubDeliverableInputs(prev => ({ ...prev, [index]: '' }));
+                                  }
+                                }}
+                                className="h-6 px-2 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-1"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
                             </div>
                           </div>
-                        )}
+                        </div>
                         
                         {/* Summary */}
                         <div className="pt-2 border-t border-border/30 space-y-1">
