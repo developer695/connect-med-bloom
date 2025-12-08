@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Check } from "lucide-react";
-import { useProposalContent, Deliverable, Package, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost } from "@/contexts/ProposalContentContext";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +8,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const EditSidebar = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
   const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
+  const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
 
   if (!isEditMode) return null;
 
@@ -53,6 +55,42 @@ const EditSidebar = () => {
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
+  const toggleSubDeliverable = (deliverableIndex: number, subIndex: number) => {
+    const newDeliverables = [...proposal.deliverables];
+    const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables];
+    newSubDeliverables[subIndex] = { 
+      ...newSubDeliverables[subIndex], 
+      included: !newSubDeliverables[subIndex].included 
+    };
+    newDeliverables[deliverableIndex] = { 
+      ...newDeliverables[deliverableIndex], 
+      subDeliverables: newSubDeliverables 
+    };
+    updateContent("proposal", { deliverables: newDeliverables });
+  };
+
+  const addSubDeliverable = (deliverableIndex: number, name: string) => {
+    const newDeliverables = [...proposal.deliverables];
+    const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables, { name, included: true }];
+    newDeliverables[deliverableIndex] = { 
+      ...newDeliverables[deliverableIndex], 
+      subDeliverables: newSubDeliverables 
+    };
+    updateContent("proposal", { deliverables: newDeliverables });
+  };
+
+  const updatePackageHoursPerWeek = (index: number, hoursPerWeek: number) => {
+    const newPackages = [...proposal.packages];
+    newPackages[index] = { ...newPackages[index], hoursPerWeek };
+    updateContent("proposal", { packages: newPackages });
+  };
+
+  const updatePackageDurationWeeks = (index: number, durationWeeks: number) => {
+    const newPackages = [...proposal.packages];
+    newPackages[index] = { ...newPackages[index], durationWeeks };
+    updateContent("proposal", { packages: newPackages });
+  };
+
   const togglePackageAutoCalculate = (index: number) => {
     const newPackages = [...proposal.packages];
     newPackages[index] = { 
@@ -68,7 +106,7 @@ const EditSidebar = () => {
     updateContent("proposal", { deliverables: newDeliverables, hiddenDeliverables: newHidden });
   };
 
-  const handleAddPackage = (item: Package) => {
+  const handleAddPackage = (item: PackageType) => {
     const newPackages = [...proposal.packages, item];
     const newHidden = (proposal.hiddenPackages || []).filter(p => p.name !== item.name);
     updateContent("proposal", { packages: newPackages, hiddenPackages: newHidden });
@@ -212,6 +250,34 @@ const EditSidebar = () => {
                           </div>
                         </div>
                         
+                        {/* Sub-Deliverables */}
+                        {deliverable.subDeliverables && deliverable.subDeliverables.length > 0 && (
+                          <div className="pt-2 border-t border-border/30">
+                            <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
+                            <div className="space-y-1.5">
+                              {deliverable.subDeliverables.map((sub, subIndex) => (
+                                <div 
+                                  key={`sub-${index}-${subIndex}`}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Checkbox
+                                    id={`sub-${index}-${subIndex}`}
+                                    checked={sub.included}
+                                    onCheckedChange={() => toggleSubDeliverable(index, subIndex)}
+                                    className="h-3.5 w-3.5"
+                                  />
+                                  <label 
+                                    htmlFor={`sub-${index}-${subIndex}`}
+                                    className="text-[10px] text-foreground cursor-pointer flex-1"
+                                  >
+                                    {sub.name}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* Summary */}
                         <div className="pt-2 border-t border-border/30 space-y-1">
                           <div className="flex justify-between text-[10px] text-muted-foreground">
@@ -233,29 +299,84 @@ const EditSidebar = () => {
             </div>
           </div>
 
-          {/* Package Auto-Calculate Settings */}
+          {/* Engagement Settings */}
           <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-              Package Pricing Mode
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
+              <Package className="w-3 h-3" />
+              Engagement Packages
             </h4>
             <div className="space-y-2">
               {proposal.packages.map((pkg, index) => (
-                <div 
-                  key={`pkg-calc-${index}`}
-                  className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between"
+                <Collapsible
+                  key={`pkg-${index}`}
+                  open={expandedPackage === index}
+                  onOpenChange={(open) => setExpandedPackage(open ? index : null)}
                 >
-                  <span className="text-xs font-medium text-foreground">{pkg.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground">
-                      {pkg.autoCalculate ? 'Auto' : 'Manual'}
-                    </span>
-                    <Switch
-                      checked={pkg.autoCalculate}
-                      onCheckedChange={() => togglePackageAutoCalculate(index)}
-                      className="scale-75"
-                    />
-                  </div>
-                </div>
+                  <CollapsibleTrigger className="w-full">
+                    <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                      <span className="text-xs font-medium text-foreground truncate flex-1 text-left">
+                        {pkg.name}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-primary font-medium">
+                          {pkg.hoursPerWeek}h/wk • {pkg.durationWeeks}wks
+                        </span>
+                        {expandedPackage === index ? (
+                          <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
+                      {/* Hours per Week */}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Hours per Week</Label>
+                        <Input
+                          type="number"
+                          value={pkg.hoursPerWeek}
+                          onChange={(e) => updatePackageHoursPerWeek(index, parseInt(e.target.value) || 0)}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      
+                      {/* Duration Weeks */}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Duration (weeks)</Label>
+                        <Input
+                          type="number"
+                          value={pkg.durationWeeks}
+                          onChange={(e) => updatePackageDurationWeeks(index, parseInt(e.target.value) || 0)}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      
+                      {/* Auto-Calculate Toggle */}
+                      <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                        <span className="text-[10px] text-muted-foreground">Auto-calculate price</span>
+                        <Switch
+                          checked={pkg.autoCalculate}
+                          onCheckedChange={() => togglePackageAutoCalculate(index)}
+                          className="scale-75"
+                        />
+                      </div>
+                      
+                      {/* Summary */}
+                      <div className="pt-2 border-t border-border/30">
+                        <div className="flex justify-between text-[10px] text-muted-foreground">
+                          <span>Total hours:</span>
+                          <span>{pkg.hoursPerWeek * pkg.durationWeeks} hrs</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                          <span>Duration:</span>
+                          <span>{Math.round(pkg.durationWeeks / 4.345 * 10) / 10} months</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               ))}
             </div>
           </div>
