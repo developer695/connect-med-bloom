@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useRef } from "react";
-import { Camera } from "lucide-react";
 import EditableText from "../EditableText";
+import TeamMemberAvatar from "../TeamMemberAvatar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const TeamPage = () => {
@@ -71,45 +71,14 @@ const TeamPage = () => {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="bg-muted/30 rounded-lg p-6 border border-border/50"
             >
-              <div className="relative w-16 h-16 mb-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={(el) => (fileInputRefs.current[index] = el)}
-                  onChange={(e) => handleImageUpload(index, e)}
-                  className="hidden"
-                />
-                {member.image ? (
-                  <div 
-                    className={`w-16 h-16 rounded-full overflow-hidden ${isEditMode ? 'cursor-pointer group' : ''}`}
-                    onClick={() => isEditMode && fileInputRefs.current[index]?.click()}
-                  >
-                    <img 
-                      src={member.image} 
-                      alt={member.name} 
-                      className="w-full h-full object-cover"
-                    />
-                    {isEditMode && (
-                      <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="w-5 h-5 text-white" />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div 
-                    className={`w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center ${isEditMode ? 'cursor-pointer group hover:bg-primary/20 transition-colors' : ''}`}
-                    onClick={() => isEditMode && fileInputRefs.current[index]?.click()}
-                  >
-                    {isEditMode ? (
-                      <Camera className="w-6 h-6 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
-                    ) : (
-                      <span className="text-2xl font-semibold text-primary">
-                        {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
+              <TeamMemberAvatar
+                member={member}
+                index={index}
+                isEditMode={isEditMode}
+                fileInputRef={(el) => (fileInputRefs.current[index] = el)}
+                onImageUpload={(e) => handleImageUpload(index, e)}
+                onAvatarClick={() => isEditMode && fileInputRefs.current[index]?.click()}
+              />
               <h3 className="text-lg font-heading font-semibold text-foreground mb-1">
                 <EditableText
                   value={member.name}

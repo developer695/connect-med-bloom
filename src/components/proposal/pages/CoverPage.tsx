@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import UnifiMedLogo from "../UnifiMedLogo";
 import EditableText from "../EditableText";
+import EditableShape from "../EditableShape";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const CoverPage = () => {
@@ -9,9 +10,17 @@ const CoverPage = () => {
 
   return (
     <div className="h-full flex flex-col justify-between p-8 md:p-16 bg-card relative overflow-hidden">
-      {/* Decorative circles */}
-      <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-primary/10" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-primary/5" />
+      {/* Decorative circles - now editable */}
+      <EditableShape
+        id="cover-circle-1"
+        defaultConfig={{ x: 0, y: 0, width: 256, height: 256 }}
+        className="rounded-full bg-primary/10"
+      />
+      <EditableShape
+        id="cover-circle-2"
+        defaultConfig={{ x: -100, y: -100, width: 384, height: 384 }}
+        className="rounded-full bg-primary/5 !left-auto !top-auto right-0 bottom-0"
+      />
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
