@@ -134,11 +134,51 @@ const ProposalPage = () => {
           </h2>
         </motion.div>
 
+        {/* Project Team Section */}
+        {proposal.projectTeam && proposal.projectTeam.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mb-10"
+          >
+            <h3 className="text-xl font-heading font-semibold mb-4 text-primary">
+              <EditableText
+                value={proposal.projectTeamTitle}
+                onSave={(val) => updateContent("proposal", { projectTeamTitle: val })}
+              />
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {proposal.projectTeam.map((member, index) => (
+                <div 
+                  key={`team-${index}`}
+                  className="bg-muted/20 rounded-lg p-4 border border-border/50 flex items-start gap-4"
+                >
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {member.image ? (
+                      <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-semibold text-primary">
+                        {member.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-foreground">{member.name}</h4>
+                    <p className="text-sm text-primary">{member.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{member.bio}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         {/* Scope Section */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
           className="mb-10"
         >
           <h3 className="text-xl font-heading font-semibold mb-4 text-primary">

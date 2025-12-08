@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2 } from "lucide-react";
 import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,10 @@ const EditSidebar = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
   const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
   const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
+  const [expandedTeamMember, setExpandedTeamMember] = useState<number | null>(null);
   const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
+  const [showAddTeamMember, setShowAddTeamMember] = useState(false);
+  const [newTeamMember, setNewTeamMember] = useState({ name: '', title: '', bio: '', image: '' });
 
   if (!isEditMode) return null;
 
@@ -140,6 +143,161 @@ const EditSidebar = () => {
       
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
+          {/* Project Team Section */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Project Team
+            </h4>
+            <div className="space-y-2">
+              {proposal.projectTeam?.map((member, index) => (
+                <Collapsible
+                  key={`team-${index}`}
+                  open={expandedTeamMember === index}
+                  onOpenChange={(open) => setExpandedTeamMember(open ? index : null)}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold text-primary">
+                          {member.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {member.name}
+                        </span>
+                      </div>
+                      {expandedTeamMember === index ? (
+                        <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Name</Label>
+                        <Input
+                          value={member.name}
+                          onChange={(e) => {
+                            const newTeam = [...(proposal.projectTeam || [])];
+                            newTeam[index] = { ...newTeam[index], name: e.target.value };
+                            updateContent("proposal", { projectTeam: newTeam });
+                          }}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Title</Label>
+                        <Input
+                          value={member.title}
+                          onChange={(e) => {
+                            const newTeam = [...(proposal.projectTeam || [])];
+                            newTeam[index] = { ...newTeam[index], title: e.target.value };
+                            updateContent("proposal", { projectTeam: newTeam });
+                          }}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Bio</Label>
+                        <Textarea
+                          value={member.bio}
+                          onChange={(e) => {
+                            const newTeam = [...(proposal.projectTeam || [])];
+                            newTeam[index] = { ...newTeam[index], bio: e.target.value };
+                            updateContent("proposal", { projectTeam: newTeam });
+                          }}
+                          className="text-xs min-h-[50px] mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Image URL (optional)</Label>
+                        <Input
+                          value={member.image || ''}
+                          onChange={(e) => {
+                            const newTeam = [...(proposal.projectTeam || [])];
+                            newTeam[index] = { ...newTeam[index], image: e.target.value };
+                            updateContent("proposal", { projectTeam: newTeam });
+                          }}
+                          placeholder="https://..."
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newTeam = proposal.projectTeam?.filter((_, i) => i !== index) || [];
+                          updateContent("proposal", { projectTeam: newTeam });
+                          setExpandedTeamMember(null);
+                        }}
+                        className="w-full h-7 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Remove Team Member
+                      </button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+              
+              {/* Add New Team Member */}
+              {showAddTeamMember ? (
+                <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
+                  <Input
+                    value={newTeamMember.name}
+                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Name..."
+                    className="h-7 text-xs"
+                  />
+                  <Input
+                    value={newTeamMember.title}
+                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Title..."
+                    className="h-7 text-xs"
+                  />
+                  <Textarea
+                    value={newTeamMember.bio}
+                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, bio: e.target.value }))}
+                    placeholder="Brief bio..."
+                    className="text-xs min-h-[40px]"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (newTeamMember.name.trim()) {
+                          const newTeam = [...(proposal.projectTeam || []), newTeamMember];
+                          updateContent("proposal", { projectTeam: newTeam });
+                          setNewTeamMember({ name: '', title: '', bio: '', image: '' });
+                          setShowAddTeamMember(false);
+                        }
+                      }}
+                      className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewTeamMember({ name: '', title: '', bio: '', image: '' });
+                        setShowAddTeamMember(false);
+                      }}
+                      className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddTeamMember(true)}
+                  className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Team Member
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Key Deliverables Section */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
