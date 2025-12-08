@@ -353,6 +353,33 @@ const EditSidebar = () => {
                         />
                       </div>
                       
+                      {/* Selected Sub-Deliverables from included deliverables */}
+                      <div className="pt-2 border-t border-border/30">
+                        <Label className="text-[10px] text-muted-foreground mb-2 block">Included Deliverables</Label>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {pkg.includedDeliverables.map((delTitle) => {
+                            const deliverable = proposal.deliverables.find(d => d.title === delTitle);
+                            if (!deliverable) return null;
+                            const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
+                            if (selectedSubs.length === 0) return null;
+                            
+                            return (
+                              <div key={delTitle} className="space-y-1">
+                                <span className="text-[10px] font-medium text-foreground">{delTitle}</span>
+                                <div className="pl-2 space-y-0.5">
+                                  {selectedSubs.map((sub, subIdx) => (
+                                    <div key={subIdx} className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
+                                      {sub.name}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
                       {/* Auto-Calculate Toggle */}
                       <div className="flex items-center justify-between pt-2 border-t border-border/30">
                         <span className="text-[10px] text-muted-foreground">Auto-calculate price</span>
