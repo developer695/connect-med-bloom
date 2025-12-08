@@ -13,7 +13,7 @@ const CoverPage = () => {
       {/* Decorative circle - positioned as half circle on left edge */}
       <EditableShape
         id="cover-circle-1"
-        defaultConfig={{ x: -180, y: 80, width: 320, height: 320 }}
+        defaultConfig={{ x: -280, y: 100, width: 400, height: 400 }}
         className="rounded-full bg-primary/10"
       />
 
