@@ -166,6 +166,64 @@ const generateStaticHTML = (content: ProposalContent): string => {
     </div>
   `;
 
+  const teamPage = `
+    <div class="page">
+      <div class="section-label">${content.team.sectionLabel}</div>
+      <h1>${content.team.title}</h1>
+      <p>${content.team.intro}</p>
+      <div class="grid-2" style="margin-top: 24px;">
+        ${content.team.members.map(member => `
+          <div class="card">
+            <div class="card-title">${member.name}</div>
+            <p style="font-size: 11px; color: ${primaryColor}; margin-bottom: 8px;">${member.role}</p>
+            <p style="font-size: 10px;">${member.bio}</p>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card" style="margin-top: 24px; background: ${primaryColor}10;">
+        <h2 style="color: #1a1a1a;">${content.team.collectiveTitle}</h2>
+        <p>${content.team.collectiveText}</p>
+      </div>
+    </div>
+  `;
+
+  const proposalPage = `
+    <div class="page">
+      <div class="section-label">${content.proposal.sectionLabel}</div>
+      <h1>${content.proposal.title}</h1>
+      <h2>${content.proposal.scopeTitle}</h2>
+      <p>${content.proposal.scopeText}</p>
+      <h2 style="margin-top: 24px;">${content.proposal.deliverablesTitle}</h2>
+      <div class="grid-2">
+        ${content.proposal.deliverables.map(d => `
+          <div class="card">
+            <div class="card-title">${d.title}</div>
+            <p style="font-size: 10px;">${d.description}</p>
+          </div>
+        `).join('')}
+      </div>
+      <h2 style="margin-top: 24px;">${content.proposal.packagesTitle}</h2>
+      <div class="grid-3">
+        ${content.proposal.packages.map((pkg, i) => `
+          <div class="card" style="${i === 1 ? `border: 2px solid ${primaryColor};` : ''}">
+            <div class="card-title">${pkg.name}</div>
+            <p style="font-size: 10px; margin-bottom: 8px;">${pkg.description}</p>
+            <p style="font-size: 18px; font-weight: bold; color: ${primaryColor};">${pkg.price}</p>
+            <p style="font-size: 9px; color: #666; margin-bottom: 8px;">${pkg.duration}</p>
+            <ul style="font-size: 9px; list-style: none; padding: 0;">
+              ${pkg.features.map(f => `<li style="margin-bottom: 4px;">✓ ${f}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card" style="margin-top: 24px; background: ${primaryColor}10;">
+        <h2 style="color: #1a1a1a;">${content.proposal.termsTitle}</h2>
+        <p style="font-size: 10px;">${content.proposal.termsText}</p>
+      </div>
+    </div>
+  `;
+
+
   const valuePage = `
     <div class="page">
       <div class="section-label">${content.value.sectionLabel}</div>
@@ -216,6 +274,8 @@ const generateStaticHTML = (content: ProposalContent): string => {
       ${solutionsPage}
       ${marketsPage}
       ${clientsPage}
+      ${teamPage}
+      ${proposalPage}
       ${valuePage}
       ${contactPage}
     </body>
@@ -477,6 +537,94 @@ export const exportToWord = async (content: ProposalContent) => {
           ]),
           new Paragraph({ text: "", pageBreakBefore: true }),
 
+          // Team
+          new Paragraph({
+            children: [
+              new TextRun({ text: content.team.sectionLabel, bold: true, size: 20, color: "0866a4" }),
+            ],
+          }),
+          new Paragraph({
+            text: content.team.title,
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 400 },
+          }),
+          new Paragraph({
+            text: content.team.intro,
+            spacing: { after: 400 },
+          }),
+          ...content.team.members.flatMap((member) => [
+            new Paragraph({
+              children: [new TextRun({ text: member.name, bold: true })],
+              spacing: { after: 50 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: member.role, color: "0866a4", italics: true })],
+              spacing: { after: 100 },
+            }),
+            new Paragraph({
+              text: member.bio,
+              spacing: { after: 300 },
+            }),
+          ]),
+          new Paragraph({ text: "", pageBreakBefore: true }),
+
+          // Proposal
+          new Paragraph({
+            children: [
+              new TextRun({ text: content.proposal.sectionLabel, bold: true, size: 20, color: "0866a4" }),
+            ],
+          }),
+          new Paragraph({
+            text: content.proposal.title,
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 400 },
+          }),
+          new Paragraph({
+            text: content.proposal.scopeTitle,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 200 },
+          }),
+          new Paragraph({
+            text: content.proposal.scopeText,
+            spacing: { after: 400 },
+          }),
+          new Paragraph({
+            text: content.proposal.deliverablesTitle,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 200 },
+          }),
+          ...content.proposal.deliverables.flatMap((d) => [
+            new Paragraph({
+              children: [new TextRun({ text: d.title, bold: true })],
+              spacing: { after: 50 },
+            }),
+            new Paragraph({
+              text: d.description,
+              spacing: { after: 200 },
+            }),
+          ]),
+          new Paragraph({
+            text: content.proposal.packagesTitle,
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 200, before: 200 },
+          }),
+          ...content.proposal.packages.flatMap((pkg) => [
+            new Paragraph({
+              children: [new TextRun({ text: `${pkg.name} - ${pkg.price}`, bold: true, size: 28 })],
+              spacing: { after: 50 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: `${pkg.description} (${pkg.duration})`, italics: true })],
+              spacing: { after: 100 },
+            }),
+            ...pkg.features.map((f) => new Paragraph({
+              text: `• ${f}`,
+              spacing: { after: 50 },
+            })),
+            new Paragraph({ text: "", spacing: { after: 200 } }),
+          ]),
+          new Paragraph({ text: "", pageBreakBefore: true }),
+
           // Value
           new Paragraph({
             children: [
@@ -646,34 +794,63 @@ export const exportToPowerPoint = async (content: ProposalContent) => {
     slide7.addText(client.description, { x: 0.7, y: yPos + 0.3, w: 8.6, h: 0.35, fontSize: 10, color: "4A4A4A" });
   });
 
-  // Slide 8: Value
+  // Slide 8: Team
   const slide8 = pptx.addSlide();
-  slide8.addText(content.value.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
-  slide8.addText(content.value.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
-  content.value.pillars.forEach((pillar, i) => {
-    const xPos = 0.5 + i * 2.35;
-    slide8.addShape(pptx.ShapeType.rect, { x: xPos, y: 1.4, w: 2.2, h: 1, fill: { color: lightBg } });
-    slide8.addText(pillar.title, { x: xPos + 0.1, y: 1.5, w: 2, h: 0.3, fontSize: 14, bold: true, color: primaryColor, align: "center" });
-    slide8.addText(pillar.description, { x: xPos + 0.1, y: 1.8, w: 2, h: 0.5, fontSize: 8, color: "4A4A4A", align: "center", valign: "top" });
-  });
-  slide8.addText("What Sets Us Apart", { x: 0.5, y: 2.6, w: 9, h: 0.4, fontSize: 16, bold: true, color: primaryColor });
-  content.value.differentiators.forEach((diff, i) => {
-    const yPos = 3.1 + i * 0.6;
-    slide8.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.5, fill: { color: lightBg } });
-    slide8.addText(diff.title, { x: 0.7, y: yPos + 0.05, w: 8.6, h: 0.2, fontSize: 11, bold: true, color: primaryColor });
-    slide8.addText(diff.description, { x: 0.7, y: yPos + 0.25, w: 8.6, h: 0.2, fontSize: 9, color: "4A4A4A" });
+  slide8.addText(content.team.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide8.addText(content.team.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.team.members.slice(0, 6).forEach((member, i) => {
+    const xPos = 0.5 + (i % 3) * 3.1;
+    const yPos = 1.4 + Math.floor(i / 3) * 1.5;
+    slide8.addShape(pptx.ShapeType.rect, { x: xPos, y: yPos, w: 2.9, h: 1.3, fill: { color: lightBg } });
+    slide8.addText(member.name, { x: xPos + 0.1, y: yPos + 0.1, w: 2.7, h: 0.25, fontSize: 11, bold: true, color: "1A1A1A" });
+    slide8.addText(member.role, { x: xPos + 0.1, y: yPos + 0.35, w: 2.7, h: 0.2, fontSize: 9, italic: true, color: primaryColor });
+    slide8.addText(member.bio, { x: xPos + 0.1, y: yPos + 0.55, w: 2.7, h: 0.7, fontSize: 8, color: "4A4A4A", valign: "top" });
   });
 
-  // Slide 9: Contact
+  // Slide 9: Proposal
   const slide9 = pptx.addSlide();
-  slide9.addText(content.contact.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
-  slide9.addText(content.contact.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
-  slide9.addText(content.contact.intro, { x: 0.5, y: 1.4, w: 6, h: 0.8, fontSize: 12, color: "4A4A4A" });
-  slide9.addText(`Email: ${content.contact.email}`, { x: 0.5, y: 2.4, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
-  slide9.addText(`Location: ${content.contact.location}`, { x: 0.5, y: 2.7, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
-  slide9.addText(`Website: ${content.contact.website}`, { x: 0.5, y: 3, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
-  slide9.addShape(pptx.ShapeType.rect, { x: 0, y: 4.8, w: 10, h: 0.02, fill: { color: primaryColor } });
-  slide9.addText(`UnifiMed Global Advisory | ${content.contact.email} | ${content.contact.location}`, { x: 0, y: 4.9, w: 10, h: 0.3, fontSize: 10, color: "666666", align: "center" });
+  slide9.addText(content.proposal.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide9.addText(content.proposal.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  slide9.addText(content.proposal.packagesTitle, { x: 0.5, y: 1.3, w: 9, h: 0.3, fontSize: 14, bold: true, color: "1A1A1A" });
+  content.proposal.packages.forEach((pkg, i) => {
+    const xPos = 0.5 + i * 3.1;
+    slide9.addShape(pptx.ShapeType.rect, { x: xPos, y: 1.7, w: 2.9, h: 2.8, fill: { color: i === 1 ? "E8F4F8" : lightBg }, line: i === 1 ? { color: primaryColor, pt: 2 } : undefined });
+    slide9.addText(pkg.name, { x: xPos + 0.1, y: 1.8, w: 2.7, h: 0.3, fontSize: 14, bold: true, color: primaryColor });
+    slide9.addText(pkg.description, { x: xPos + 0.1, y: 2.1, w: 2.7, h: 0.2, fontSize: 9, color: "4A4A4A" });
+    slide9.addText(pkg.price, { x: xPos + 0.1, y: 2.35, w: 2.7, h: 0.3, fontSize: 18, bold: true, color: primaryColor });
+    slide9.addText(pkg.duration, { x: xPos + 0.1, y: 2.65, w: 2.7, h: 0.2, fontSize: 8, color: "666666" });
+    const featureText = pkg.features.map(f => `✓ ${f}`).join('\n');
+    slide9.addText(featureText, { x: xPos + 0.1, y: 2.9, w: 2.7, h: 1.5, fontSize: 8, color: "4A4A4A", valign: "top" });
+  });
+
+  // Slide 10: Value
+  const slide10 = pptx.addSlide();
+  slide10.addText(content.value.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide10.addText(content.value.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.value.pillars.forEach((pillar, i) => {
+    const xPos = 0.5 + i * 2.35;
+    slide10.addShape(pptx.ShapeType.rect, { x: xPos, y: 1.4, w: 2.2, h: 1, fill: { color: lightBg } });
+    slide10.addText(pillar.title, { x: xPos + 0.1, y: 1.5, w: 2, h: 0.3, fontSize: 14, bold: true, color: primaryColor, align: "center" });
+    slide10.addText(pillar.description, { x: xPos + 0.1, y: 1.8, w: 2, h: 0.5, fontSize: 8, color: "4A4A4A", align: "center", valign: "top" });
+  });
+  slide10.addText("What Sets Us Apart", { x: 0.5, y: 2.6, w: 9, h: 0.4, fontSize: 16, bold: true, color: primaryColor });
+  content.value.differentiators.forEach((diff, i) => {
+    const yPos = 3.1 + i * 0.6;
+    slide10.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.5, fill: { color: lightBg } });
+    slide10.addText(diff.title, { x: 0.7, y: yPos + 0.05, w: 8.6, h: 0.2, fontSize: 11, bold: true, color: primaryColor });
+    slide10.addText(diff.description, { x: 0.7, y: yPos + 0.25, w: 8.6, h: 0.2, fontSize: 9, color: "4A4A4A" });
+  });
+
+  // Slide 11: Contact
+  const slide11 = pptx.addSlide();
+  slide11.addText(content.contact.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide11.addText(content.contact.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  slide11.addText(content.contact.intro, { x: 0.5, y: 1.4, w: 6, h: 0.8, fontSize: 12, color: "4A4A4A" });
+  slide11.addText(`Email: ${content.contact.email}`, { x: 0.5, y: 2.4, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide11.addText(`Location: ${content.contact.location}`, { x: 0.5, y: 2.7, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide11.addText(`Website: ${content.contact.website}`, { x: 0.5, y: 3, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide11.addShape(pptx.ShapeType.rect, { x: 0, y: 4.8, w: 10, h: 0.02, fill: { color: primaryColor } });
+  slide11.addText(`UnifiMed Global Advisory | ${content.contact.email} | ${content.contact.location}`, { x: 0, y: 4.9, w: 10, h: 0.3, fontSize: 10, color: "666666", align: "center" });
 
   await pptx.writeFile({ fileName: "UnifiMed-Proposal.pptx" });
 };
