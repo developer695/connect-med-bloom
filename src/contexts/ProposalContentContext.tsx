@@ -598,8 +598,24 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
   };
 
   const resetContent = () => {
-    setContent(defaultContent);
-    localStorage.removeItem("proposal-content");
+    // Preserve team member profiles (images and data) across new proposals
+    const preservedTeamMembers = content.team.members;
+    const preservedProjectTeam = content.proposal.projectTeam;
+    
+    const newContent = {
+      ...defaultContent,
+      team: {
+        ...defaultContent.team,
+        members: preservedTeamMembers,
+      },
+      proposal: {
+        ...defaultContent.proposal,
+        projectTeam: preservedProjectTeam,
+      },
+    };
+    
+    setContent(newContent);
+    localStorage.setItem("proposal-content", JSON.stringify(newContent));
   };
 
   const saveProposal = (name: string, clientName: string) => {
