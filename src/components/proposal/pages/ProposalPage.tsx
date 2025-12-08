@@ -275,8 +275,8 @@ const ProposalPage = () => {
                     <p>{Math.round(pkg.durationWeeks / 4.345 * 10) / 10}-month engagement</p>
                   </div>
                   
-                  {/* Included Deliverables with Sub-Deliverables */}
-                  <div className="space-y-3">
+                  {/* Included Deliverables with Sub-Deliverables - Grid Layout */}
+                  <div className={`grid gap-3 ${proposal.packages.length === 1 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}>
                     {proposal.deliverables.map((deliverable) => {
                       const isIncluded = pkg.includedDeliverables?.includes(deliverable.title);
                       const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
@@ -284,7 +284,7 @@ const ProposalPage = () => {
                       if (isEditMode) {
                         // In edit mode, show all deliverables as toggleable
                         return (
-                          <div key={deliverable.title}>
+                          <div key={deliverable.title} className="bg-muted/20 rounded-md p-3 border border-border/30">
                             <div 
                               className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors"
                               onClick={() => toggleDeliverableInPackage(pkgIndex, deliverable.title)}
@@ -301,7 +301,7 @@ const ProposalPage = () => {
                               </span>
                             </div>
                             {isIncluded && selectedSubs.length > 0 && (
-                              <ul className="ml-6 mt-1 space-y-0.5">
+                              <ul className="ml-6 mt-2 space-y-1">
                                 {selectedSubs.map((sub, subIdx) => (
                                   <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
                                     <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
@@ -318,7 +318,7 @@ const ProposalPage = () => {
                       if (!isIncluded) return null;
                       
                       return (
-                        <div key={deliverable.title}>
+                        <div key={deliverable.title} className="bg-muted/20 rounded-md p-3 border border-border/30">
                           <div className="flex items-start gap-2">
                             <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                             <span className="text-sm font-medium text-foreground">
@@ -326,7 +326,7 @@ const ProposalPage = () => {
                             </span>
                           </div>
                           {selectedSubs.length > 0 && (
-                            <ul className="ml-6 mt-1 space-y-0.5">
+                            <ul className="ml-6 mt-2 space-y-1">
                               {selectedSubs.map((sub, subIdx) => (
                                 <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
                                   <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
