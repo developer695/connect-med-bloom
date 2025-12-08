@@ -136,10 +136,10 @@ const EditableImage = ({
         </div>
       ) : (
         <div
-          className={`w-full h-full rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-colors ${
+          className={`w-full h-full rounded-lg flex flex-col items-center justify-center gap-2 transition-colors ${
             isEditMode 
-              ? 'border-primary/50 bg-primary/5 cursor-pointer hover:bg-primary/10' 
-              : 'border-border/30 bg-muted/20'
+              ? 'bg-primary/5 cursor-pointer hover:bg-primary/10' 
+              : 'bg-muted/10'
           }`}
           onClick={() => isEditMode && fileInputRef.current?.click()}
         >
@@ -148,9 +148,7 @@ const EditableImage = ({
               <Upload className="w-6 h-6 text-primary/60" />
               <span className="text-xs text-primary/60 font-medium">{placeholder}</span>
             </>
-          ) : (
-            <span className="text-xs text-muted-foreground/50">Client Logo</span>
-          )}
+          ) : null}
         </div>
       )}
 

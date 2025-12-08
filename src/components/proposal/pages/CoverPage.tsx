@@ -11,12 +11,6 @@ const CoverPage = () => {
 
   return (
     <div className="h-full flex flex-col justify-between p-8 md:p-16 bg-card relative overflow-hidden">
-      {/* Decorative circle - positioned as half circle on left edge */}
-      <EditableShape
-        id="cover-circle-1"
-        defaultConfig={{ x: -280, y: 100, width: 400, height: 400 }}
-        className="rounded-full bg-primary/10"
-      />
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
