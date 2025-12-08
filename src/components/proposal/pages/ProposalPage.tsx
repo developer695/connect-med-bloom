@@ -281,51 +281,32 @@ const ProposalPage = () => {
                       const isIncluded = pkg.includedDeliverables?.includes(deliverable.title);
                       const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
                       
-                      if (isEditMode) {
-                        // In edit mode, show all deliverables as toggleable
-                        return (
-                          <div key={deliverable.title} className="bg-muted/20 rounded-md p-3 border border-border/30">
-                            <div 
-                              className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors"
-                              onClick={() => toggleDeliverableInPackage(pkgIndex, deliverable.title)}
-                            >
-                              <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                                isIncluded 
-                                  ? 'bg-primary border-primary text-primary-foreground' 
-                                  : 'border-muted-foreground/30'
-                              }`}>
-                                {isIncluded && <Check className="w-3 h-3" />}
-                              </span>
-                              <span className={`text-sm font-medium ${isIncluded ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                                {deliverable.title}
-                              </span>
-                            </div>
-                            {isIncluded && selectedSubs.length > 0 && (
-                              <ul className="ml-6 mt-2 space-y-1">
-                                {selectedSubs.map((sub, subIdx) => (
-                                  <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                    <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
-                                    {sub.name}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      }
-                      
-                      // In view mode, only show included deliverables
-                      if (!isIncluded) return null;
-                      
+                      // Always show all deliverables to match Key Deliverables section
                       return (
-                        <div key={deliverable.title} className="bg-muted/20 rounded-md p-3 border border-border/30">
-                          <div className="flex items-start gap-2">
-                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                            <span className="text-sm font-medium text-foreground">
+                        <div 
+                          key={deliverable.title} 
+                          className={`rounded-md p-3 border ${
+                            isIncluded 
+                              ? 'bg-muted/20 border-border/30' 
+                              : 'bg-muted/5 border-border/20 opacity-50'
+                          }`}
+                        >
+                          <div 
+                            className={`flex items-start gap-2 ${isEditMode ? 'cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors' : ''}`}
+                            onClick={isEditMode ? () => toggleDeliverableInPackage(pkgIndex, deliverable.title) : undefined}
+                          >
+                            <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                              isIncluded 
+                                ? 'bg-primary border-primary text-primary-foreground' 
+                                : 'border-muted-foreground/30'
+                            }`}>
+                              {isIncluded && <Check className="w-3 h-3" />}
+                            </span>
+                            <span className={`text-sm font-medium ${isIncluded ? 'text-foreground' : 'text-muted-foreground/50'}`}>
                               {deliverable.title}
                             </span>
                           </div>
-                          {selectedSubs.length > 0 && (
+                          {isIncluded && selectedSubs.length > 0 && (
                             <ul className="ml-6 mt-2 space-y-1">
                               {selectedSubs.map((sub, subIdx) => (
                                 <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
