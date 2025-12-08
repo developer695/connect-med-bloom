@@ -4,16 +4,15 @@ import { Button } from "@/components/ui/button";
 import EditableText from "../EditableText";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
-const nextSteps = [
-  { num: 1, title: "Initial Consultation", desc: "Schedule a complimentary consultation to discuss your needs" },
-  { num: 2, title: "Assessment", desc: "We'll conduct a preliminary evaluation of your technology" },
-  { num: 3, title: "Proposal", desc: "Receive a customized proposal outlining our recommended approach" },
-  { num: 4, title: "Partnership", desc: "Begin our collaborative journey toward successful commercialization" }
-];
-
 const ContactPage = () => {
   const { content, updateContent } = useProposalContent();
   const { contact } = content;
+
+  const updateNextStep = (index: number, field: "title" | "description", value: string) => {
+    const newSteps = [...contact.nextSteps];
+    newSteps[index] = { ...newSteps[index], [field]: value };
+    updateContent("contact", { nextSteps: newSteps });
+  };
 
   return (
     <div className="h-full p-8 md:p-16 bg-gradient-to-br from-card to-secondary/50 overflow-auto">
@@ -44,7 +43,12 @@ const ContactPage = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 md:mb-6 text-foreground">Let's Start a Conversation</h3>
+            <h3 className="text-xl md:text-2xl font-heading font-semibold mb-4 md:mb-6 text-foreground">
+              <EditableText
+                value={contact.conversationTitle}
+                onSave={(val) => updateContent("contact", { conversationTitle: val })}
+              />
+            </h3>
             <p className="text-muted-foreground leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
               <EditableText
                 value={contact.intro}
@@ -105,30 +109,48 @@ const ContactPage = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="bg-card rounded-lg p-6 md:p-8 shadow-elevated"
           >
-            <h3 className="text-lg md:text-xl font-heading font-semibold mb-6 text-foreground">Next Steps</h3>
+            <h3 className="text-lg md:text-xl font-heading font-semibold mb-6 text-foreground">
+              <EditableText
+                value={contact.nextStepsTitle}
+                onSave={(val) => updateContent("contact", { nextStepsTitle: val })}
+              />
+            </h3>
 
             <div className="space-y-5 md:space-y-6">
-              {nextSteps.map((step, index) => (
+              {contact.nextSteps.map((step, index) => (
                 <motion.div
-                  key={step.num}
+                  key={index}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
                 >
                   <div className="flex items-center gap-3 mb-1 md:mb-2">
                     <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs md:text-sm font-bold">
-                      {step.num}
+                      {index + 1}
                     </div>
-                    <h4 className="font-heading font-semibold text-foreground text-sm md:text-base">{step.title}</h4>
+                    <h4 className="font-heading font-semibold text-foreground text-sm md:text-base">
+                      <EditableText
+                        value={step.title}
+                        onSave={(val) => updateNextStep(index, "title", val)}
+                      />
+                    </h4>
                   </div>
-                  <p className="text-xs md:text-sm text-muted-foreground ml-9 md:ml-11">{step.desc}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground ml-9 md:ml-11">
+                    <EditableText
+                      value={step.description}
+                      onSave={(val) => updateNextStep(index, "description", val)}
+                    />
+                  </p>
                 </motion.div>
               ))}
             </div>
 
             <div className="mt-6 md:mt-8 pt-6 border-t border-border">
               <Button className="w-full" size="lg">
-                Schedule a Consultation
+                <EditableText
+                  value={contact.ctaButton}
+                  onSave={(val) => updateContent("contact", { ctaButton: val })}
+                />
               </Button>
             </div>
           </motion.div>
@@ -142,8 +164,18 @@ const ContactPage = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg md:text-xl font-heading font-semibold mb-2 text-foreground">UnifiMed Academy</h3>
-              <p className="text-muted-foreground text-sm md:text-base">Explore educational resources and insights at unifimed.academy</p>
+              <h3 className="text-lg md:text-xl font-heading font-semibold mb-2 text-foreground">
+                <EditableText
+                  value={contact.academyTitle}
+                  onSave={(val) => updateContent("contact", { academyTitle: val })}
+                />
+              </h3>
+              <p className="text-muted-foreground text-sm md:text-base">
+                <EditableText
+                  value={contact.academyText}
+                  onSave={(val) => updateContent("contact", { academyText: val })}
+                />
+              </p>
             </div>
             <ChevronRight className="w-6 h-6 md:w-8 md:h-8 text-primary" />
           </div>
