@@ -12,6 +12,8 @@ import HowWeWorkPage from "./pages/HowWeWorkPage";
 import SolutionsPage from "./pages/SolutionsPage";
 import MarketsPage from "./pages/MarketsPage";
 import ClientsPage from "./pages/ClientsPage";
+import TeamPage from "./pages/TeamPage";
+import ProposalPage from "./pages/ProposalPage";
 import ValuePage from "./pages/ValuePage";
 import ContactPage from "./pages/ContactPage";
 
@@ -23,6 +25,8 @@ const pages = [
   { id: "solutions", label: "Solutions", component: SolutionsPage },
   { id: "markets", label: "Markets", component: MarketsPage },
   { id: "clients", label: "Clients", component: ClientsPage },
+  { id: "team", label: "Team", component: TeamPage },
+  { id: "proposal", label: "Proposal", component: ProposalPage },
   { id: "value", label: "Value", component: ValuePage },
   { id: "contact", label: "Contact", component: ContactPage },
 ];

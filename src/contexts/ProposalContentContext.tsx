@@ -55,6 +55,26 @@ export interface ProposalContent {
     tailoredTitle: string;
     tailoredText: string;
   };
+  team: {
+    sectionLabel: string;
+    title: string;
+    intro: string;
+    members: { name: string; role: string; bio: string }[];
+    collectiveTitle: string;
+    collectiveText: string;
+  };
+  proposal: {
+    sectionLabel: string;
+    title: string;
+    scopeTitle: string;
+    scopeText: string;
+    deliverablesTitle: string;
+    deliverables: { title: string; description: string }[];
+    packagesTitle: string;
+    packages: { name: string; description: string; price: string; duration: string; features: string[] }[];
+    termsTitle: string;
+    termsText: string;
+  };
   value: {
     sectionLabel: string;
     title: string;
@@ -154,6 +174,62 @@ const defaultContent: ProposalContent = {
     ],
     tailoredTitle: "Tailored Partnerships",
     tailoredText: "By tailoring our services to the unique needs of each client, UnifiMed bridges the gap between innovation and commercialization. Whether it's navigating regulatory complexities, securing funding, or executing market entry strategies, we provide the strategic support to ensure long-term success.",
+  },
+  team: {
+    sectionLabel: "OUR TEAM",
+    title: "Partners",
+    intro: "Our leadership team brings together decades of experience across clinical practice, regulatory affairs, commercial strategy, and investment. Together, we provide the integrated expertise needed to navigate the complexities of MedTech commercialization.",
+    members: [
+      { name: "Jordan Foster", role: "Founder, Managing Partner", bio: "Jordan founded UnifiMed to bridge the gap between innovation and patient care. With extensive experience leading clinical departments and commercial strategies for startups and Fortune 500 companies, Jordan brings a unique perspective to MedTech commercialization." },
+      { name: "Katy Morrison", role: "Partner, Clinical Strategy", bio: "Katy leads our clinical strategy practice, bringing deep expertise in clinical trial design, evidence generation, and key opinion leader engagement. She has successfully guided numerous medical devices through complex clinical pathways." },
+      { name: "Mike Chen", role: "Partner, Regulatory Affairs", bio: "Mike oversees our regulatory practice, specializing in FDA submissions and pathway optimization. His track record includes successful clearances and approvals across multiple therapeutic areas and device classifications." },
+      { name: "Tawney Williams", role: "Partner, Commercial Development", bio: "Tawney leads commercial strategy and go-to-market execution. Her experience spans market analysis, sales force design, and partnership development for both early-stage and established MedTech companies." },
+      { name: "Nick Patel", role: "Partner, Capital Markets", bio: "Nick manages our investment and capital access services. With deep connections across venture capital and private equity networks, he helps clients secure funding and structure strategic investments." },
+      { name: "Lisa Vasquez", role: "Partner, Market Access", bio: "Lisa specializes in reimbursement strategy and payer engagement. Her expertise in health economics and outcomes research helps clients develop compelling value propositions and secure sustainable market access." },
+    ],
+    collectiveTitle: "Collective Expertise",
+    collectiveText: "Our partners work collaboratively across all engagements, bringing their specialized expertise to bear on each client's unique challenges. This integrated approach ensures comprehensive support and accelerated outcomes for our clients and portfolio companies.",
+  },
+  proposal: {
+    sectionLabel: "ENGAGEMENT PROPOSAL",
+    title: "Scope & Pricing",
+    scopeTitle: "Scope of Engagement",
+    scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
+    deliverablesTitle: "Key Deliverables",
+    deliverables: [
+      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations." },
+      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning." },
+      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives." },
+      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations." },
+      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations." },
+      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities." },
+    ],
+    packagesTitle: "Engagement Options",
+    packages: [
+      { 
+        name: "Foundation", 
+        description: "Strategic assessment and planning", 
+        price: "$75,000", 
+        duration: "3-month engagement",
+        features: ["Market opportunity assessment", "Regulatory pathway analysis", "Competitive landscape review", "Strategic recommendations report"]
+      },
+      { 
+        name: "Accelerate", 
+        description: "Comprehensive commercialization support", 
+        price: "$150,000", 
+        duration: "6-month engagement",
+        features: ["All Foundation deliverables", "Clinical evidence planning", "Commercial strategy development", "Reimbursement pathway analysis", "Investor materials preparation"]
+      },
+      { 
+        name: "Enterprise", 
+        description: "Full-service partnership", 
+        price: "Custom", 
+        duration: "12+ month engagement",
+        features: ["All Accelerate deliverables", "Hands-on execution support", "Regulatory submission management", "Commercial launch support", "Ongoing strategic advisory"]
+      },
+    ],
+    termsTitle: "Engagement Terms",
+    termsText: "Fees are structured as fixed-price engagements with milestone-based payments. Additional services beyond the defined scope can be added on a time-and-materials basis. We also offer success-based fee structures and equity participation arrangements for qualified opportunities. Specific terms will be outlined in the formal engagement agreement following mutual agreement on scope and objectives.",
   },
   value: {
     sectionLabel: "WHY UNIFIMED",
