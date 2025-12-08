@@ -124,7 +124,7 @@ const ProposalPage = () => {
           </h3>
           <DraggableList
             items={proposal.deliverables}
-            hiddenItems={proposal.hiddenDeliverables || []}
+            hiddenItems={[]} // Hidden items now in sidebar
             onReorder={handleReorderDeliverables}
             onRemove={handleRemoveDeliverable}
             onAdd={handleAddDeliverable}
@@ -228,27 +228,6 @@ const ProposalPage = () => {
                 </motion.div>
               ))}
             </div>
-
-            {/* Hidden packages - available to add back */}
-            {isEditMode && (proposal.hiddenPackages || []).length > 0 && (
-              <div className="mt-6 p-4 rounded-lg border-2 border-dashed border-border/50 bg-muted/20">
-                <p className="text-sm text-muted-foreground mb-3">
-                  Available packages (click to add):
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(proposal.hiddenPackages || []).map((pkg, index) => (
-                    <button
-                      key={`hidden-pkg-${index}`}
-                      onClick={() => handleAddPackage(pkg)}
-                      className="px-3 py-1.5 text-sm rounded-md border border-border bg-background hover:bg-muted transition-colors flex items-center gap-1"
-                    >
-                      <span className="text-primary">+</span>
-                      {pkg.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </motion.div>
 
