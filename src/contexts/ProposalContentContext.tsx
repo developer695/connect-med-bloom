@@ -61,7 +61,7 @@ export interface ProposalContent {
     sectionLabel: string;
     title: string;
     intro: string;
-    members: { name: string; role: string; bio: string }[];
+    members: { name: string; role: string; bio: string; image?: string }[];
     collectiveTitle: string;
     collectiveText: string;
   };
@@ -186,6 +186,7 @@ const defaultContent: ProposalContent = {
       { title: "Healthcare Innovators and Inventors", description: "Clinicians, researchers, and inventors with novel technologies seeking support to transition from concept to market-ready solutions. We offer end-to-end guidance, from regulatory compliance to market positioning." },
       { title: "Global MedTech Companies Entering the US Market", description: "International companies aiming to establish a foothold in the U.S. healthcare market. We provide localized expertise to navigate the complex regulatory environment, build connections with key stakeholders, and design effective market-entry strategies." },
       { title: "Strategic Partners and Collaborators", description: "Organizations and institutions aligned with advancing healthcare innovation, including research institutions, healthcare providers, and industry associations. We work collaboratively to enhance the impact of innovative solutions and improve patient outcomes." },
+      { title: "Investors and Capital Partners", description: "Venture capital firms, private equity groups, and strategic investors seeking to maximize returns in the MedTech sector. We provide due diligence support, portfolio company guidance, and strategic advisory to optimize investment outcomes." },
     ],
     tailoredTitle: "Tailored Partnerships",
     tailoredText: "By tailoring our services to the unique needs of each client, UnifiMed bridges the gap between innovation and commercialization. Whether it's navigating regulatory complexities, securing funding, or executing market entry strategies, we provide the strategic support to ensure long-term success.",
