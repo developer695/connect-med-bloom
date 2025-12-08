@@ -12,6 +12,11 @@ export type DurationUnit = 'weeks' | 'months';
 // Constant for weeks per month conversion
 const WEEKS_PER_MONTH = 4.345;
 
+export interface SubDeliverable {
+  name: string;
+  included: boolean;
+}
+
 export interface Deliverable {
   title: string;
   description: string;
@@ -19,6 +24,7 @@ export interface Deliverable {
   hoursPerPeriod: number; // hours per week (always weekly)
   duration: number; // number of weeks or months
   durationUnit: DurationUnit; // weeks or months
+  subDeliverables: SubDeliverable[];
 }
 
 // Calculate total hours from deliverable
@@ -42,6 +48,8 @@ export interface Package {
   description: string;
   price: string;
   duration: string;
+  hoursPerWeek: number; // engagement hours per week
+  durationWeeks: number; // engagement duration in weeks
   features: string[];
   includedDeliverables: string[]; // titles of included deliverables
   autoCalculate: boolean; // whether to auto-calculate price from deliverables
@@ -266,12 +274,42 @@ const defaultContent: ProposalContent = {
     scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
     deliverablesTitle: "Key Deliverables",
     deliverables: [
-      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit },
-      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, hoursPerPeriod: 25, duration: 3, durationUnit: 'weeks' as DurationUnit },
-      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit },
-      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit },
-      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, hoursPerPeriod: 25, duration: 2, durationUnit: 'weeks' as DurationUnit },
-      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, hoursPerPeriod: 15, duration: 2, durationUnit: 'weeks' as DurationUnit },
+      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "Competitive landscape analysis", included: true },
+        { name: "Market sizing and segmentation", included: true },
+        { name: "Target customer profiles", included: true },
+        { name: "Go-to-market recommendations", included: false },
+      ]},
+      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, hoursPerPeriod: 25, duration: 3, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "FDA pathway analysis", included: true },
+        { name: "Predicate device identification", included: true },
+        { name: "Submission timeline", included: true },
+        { name: "Risk mitigation plan", included: false },
+      ]},
+      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "Clinical study design", included: true },
+        { name: "Endpoint selection", included: true },
+        { name: "Site selection criteria", included: false },
+        { name: "Publication strategy", included: false },
+      ]},
+      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "Pricing strategy", included: true },
+        { name: "Channel strategy", included: true },
+        { name: "Sales force design", included: false },
+        { name: "Marketing plan", included: false },
+      ]},
+      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, hoursPerPeriod: 25, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "Coding analysis", included: true },
+        { name: "Coverage pathway", included: true },
+        { name: "Payer engagement plan", included: false },
+        { name: "HEOR study design", included: false },
+      ]},
+      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, hoursPerPeriod: 15, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
+        { name: "Pitch deck", included: true },
+        { name: "Financial model", included: true },
+        { name: "Due diligence package", included: false },
+        { name: "Investor targeting list", included: false },
+      ]},
     ],
     hiddenDeliverables: [],
     packagesTitle: "Engagement Options",
@@ -281,6 +319,8 @@ const defaultContent: ProposalContent = {
         description: "Strategic assessment and planning", 
         price: "$75,000", 
         duration: "3-month engagement",
+        hoursPerWeek: 20,
+        durationWeeks: 12,
         features: [],
         includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document"],
         autoCalculate: true
@@ -290,6 +330,8 @@ const defaultContent: ProposalContent = {
         description: "Comprehensive commercialization support", 
         price: "$150,000", 
         duration: "6-month engagement",
+        hoursPerWeek: 30,
+        durationWeeks: 26,
         features: [],
         includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis"],
         autoCalculate: true
@@ -299,6 +341,8 @@ const defaultContent: ProposalContent = {
         description: "Full-service partnership", 
         price: "Custom", 
         duration: "12+ month engagement",
+        hoursPerWeek: 40,
+        durationWeeks: 52,
         features: [],
         includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis", "Investor Materials"],
         autoCalculate: false
@@ -429,9 +473,10 @@ const migrateDeliverable = (d: any): Deliverable => {
     title: d.title || "",
     description: d.description || "",
     rate: d.rate ?? 250,
-    hoursPerPeriod: d.hoursPerPeriod ?? (d.hours ? Math.round(d.hours / 2) : 20), // Assume 2 weeks if old format
+    hoursPerPeriod: d.hoursPerPeriod ?? (d.hours ? Math.round(d.hours / 2) : 20),
     duration: d.duration ?? (d.timeValue ? d.timeValue * 2 : 2),
     durationUnit: d.durationUnit ?? 'weeks',
+    subDeliverables: d.subDeliverables ?? [],
   };
 };
 
@@ -449,9 +494,11 @@ const migratePackage = (p: any, index: number, allDeliverableTitles: string[]): 
     description: p.description || "",
     price: p.price || "",
     duration: p.duration || "",
+    hoursPerWeek: p.hoursPerWeek ?? 20,
+    durationWeeks: p.durationWeeks ?? 12,
     features: p.features || [],
     includedDeliverables: p.includedDeliverables || defaultInclusions[index] || [],
-    autoCalculate: p.autoCalculate ?? (index < 2), // Auto-calculate for Foundation and Accelerate
+    autoCalculate: p.autoCalculate ?? (index < 2),
   };
 };
 
