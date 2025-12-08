@@ -1,5 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
+import pptxgen from "pptxgenjs";
 import type { ProposalContent } from "@/contexts/ProposalContentContext";
 
 // Generate static HTML for PDF export
@@ -544,4 +545,135 @@ export const exportToWord = async (content: ProposalContent) => {
 
   const blob = await Packer.toBlob(doc);
   saveAs(blob, "UnifiMed-Proposal.docx");
+};
+
+// PowerPoint Export for Canva
+export const exportToPowerPoint = async (content: ProposalContent) => {
+  const pptx = new pptxgen();
+  const primaryColor = "0866a4";
+  const lightBg = "F8F9FA";
+  
+  pptx.author = "UnifiMed";
+  pptx.title = "UnifiMed Proposal";
+  pptx.subject = content.cover.title;
+  
+  // Slide 1: Cover
+  const slide1 = pptx.addSlide();
+  slide1.addText("UnifiMed", { x: 0.5, y: 0.5, w: 9, h: 0.8, fontSize: 36, bold: true, color: primaryColor });
+  slide1.addText(content.cover.tagline, { x: 0.5, y: 2, w: 9, h: 0.4, fontSize: 14, bold: true, color: primaryColor });
+  slide1.addText(content.cover.title, { x: 0.5, y: 2.5, w: 9, h: 1, fontSize: 32, color: "1A1A1A" });
+  slide1.addText(content.cover.subtitle, { x: 0.5, y: 3.6, w: 9, h: 0.5, fontSize: 16, color: "666666" });
+  slide1.addText("CONFIDENTIAL", { x: 0.5, y: 4.8, w: 4, h: 0.3, fontSize: 12, bold: true, color: "1A1A1A" });
+  slide1.addText(content.cover.date, { x: 0.5, y: 5.1, w: 4, h: 0.3, fontSize: 11, color: "666666" });
+  slide1.addText(content.cover.company, { x: 5.5, y: 4.8, w: 4, h: 0.3, fontSize: 11, color: "666666", align: "right" });
+  slide1.addText(content.cover.email, { x: 5.5, y: 5.1, w: 4, h: 0.3, fontSize: 11, color: "666666", align: "right" });
+
+  // Slide 2: Letter
+  const slide2 = pptx.addSlide();
+  slide2.addText("UnifiMed", { x: 0.5, y: 0.3, w: 9, h: 0.5, fontSize: 24, bold: true, color: primaryColor });
+  slide2.addText(content.letter.date, { x: 0.5, y: 0.9, w: 9, h: 0.3, fontSize: 11, color: "666666" });
+  slide2.addText(content.letter.salutation, { x: 0.5, y: 1.3, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  const letterText = content.letter.paragraphs.join("\n\n");
+  slide2.addText(letterText, { x: 0.5, y: 1.7, w: 9, h: 2.8, fontSize: 10, color: "4A4A4A", valign: "top" });
+  slide2.addText(content.letter.closing, { x: 0.5, y: 4.6, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide2.addText(content.letter.signature, { x: 0.5, y: 4.9, w: 9, h: 0.3, fontSize: 12, bold: true, color: "1A1A1A" });
+
+  // Slide 3: About
+  const slide3 = pptx.addSlide();
+  slide3.addText(content.about.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide3.addText(content.about.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  slide3.addText(content.about.intro, { x: 0.5, y: 1.4, w: 9, h: 0.6, fontSize: 11, color: "4A4A4A" });
+  slide3.addShape(pptx.ShapeType.rect, { x: 0.5, y: 2.1, w: 4.2, h: 1.4, fill: { color: lightBg } });
+  slide3.addText(content.about.expertiseTitle, { x: 0.7, y: 2.2, w: 3.8, h: 0.3, fontSize: 14, bold: true, color: primaryColor });
+  slide3.addText(content.about.expertiseText, { x: 0.7, y: 2.5, w: 3.8, h: 0.9, fontSize: 10, color: "4A4A4A", valign: "top" });
+  slide3.addShape(pptx.ShapeType.rect, { x: 5.3, y: 2.1, w: 4.2, h: 1.4, fill: { color: lightBg } });
+  slide3.addText(content.about.missionTitle, { x: 5.5, y: 2.2, w: 3.8, h: 0.3, fontSize: 14, bold: true, color: primaryColor });
+  slide3.addText(content.about.missionText, { x: 5.5, y: 2.5, w: 3.8, h: 0.9, fontSize: 10, color: "4A4A4A", valign: "top" });
+  slide3.addShape(pptx.ShapeType.rect, { x: 0.5, y: 3.7, w: 9, h: 0.8, fill: { color: "E8F4F8" }, line: { color: primaryColor, pt: 2 } });
+  slide3.addText(`"${content.about.quote}"`, { x: 0.7, y: 3.8, w: 8.6, h: 0.6, fontSize: 11, italic: true, color: "333333" });
+
+  // Slide 4: How We Work
+  const slide4 = pptx.addSlide();
+  slide4.addText(content.howWeWork.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide4.addText(content.howWeWork.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.howWeWork.steps.forEach((step, i) => {
+    const yPos = 1.4 + i * 0.7;
+    slide4.addShape(pptx.ShapeType.ellipse, { x: 0.5, y: yPos, w: 0.35, h: 0.35, fill: { color: primaryColor } });
+    slide4.addText(String(i + 1), { x: 0.5, y: yPos, w: 0.35, h: 0.35, fontSize: 11, color: "FFFFFF", align: "center", valign: "middle" });
+    slide4.addText(step.title, { x: 1, y: yPos, w: 8.5, h: 0.25, fontSize: 12, bold: true, color: "1A1A1A" });
+    slide4.addText(step.description, { x: 1, y: yPos + 0.25, w: 8.5, h: 0.4, fontSize: 10, color: "4A4A4A" });
+  });
+
+  // Slide 5: Solutions
+  const slide5 = pptx.addSlide();
+  slide5.addText(content.solutions.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide5.addText(content.solutions.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.solutions.services.slice(0, 4).forEach((service, i) => {
+    const xPos = 0.5 + (i % 2) * 4.75;
+    const yPos = 1.4 + Math.floor(i / 2) * 1.2;
+    slide5.addShape(pptx.ShapeType.rect, { x: xPos, y: yPos, w: 4.5, h: 1, fill: { color: lightBg } });
+    slide5.addText(service.title, { x: xPos + 0.15, y: yPos + 0.1, w: 4.2, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+    slide5.addText(service.description, { x: xPos + 0.15, y: yPos + 0.4, w: 4.2, h: 0.5, fontSize: 9, color: "4A4A4A", valign: "top" });
+  });
+  slide5.addShape(pptx.ShapeType.rect, { x: 0.5, y: 3.9, w: 9, h: 0.8, fill: { color: "FFFFFF" }, line: { color: primaryColor, pt: 2 } });
+  slide5.addText(content.solutions.integratedTitle, { x: 0.7, y: 3.95, w: 8.6, h: 0.3, fontSize: 12, bold: true, color: "1A1A1A" });
+  slide5.addText(content.solutions.integratedText, { x: 0.7, y: 4.25, w: 8.6, h: 0.4, fontSize: 10, color: "4A4A4A" });
+
+  // Slide 6: Markets
+  const slide6 = pptx.addSlide();
+  slide6.addText(content.markets.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide6.addText(content.markets.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.markets.segments.slice(0, 4).forEach((segment, i) => {
+    const xPos = 0.5 + (i % 2) * 4.75;
+    const yPos = 1.4 + Math.floor(i / 2) * 1.2;
+    slide6.addShape(pptx.ShapeType.rect, { x: xPos, y: yPos, w: 4.5, h: 1, fill: { color: lightBg } });
+    slide6.addText(segment.title, { x: xPos + 0.15, y: yPos + 0.1, w: 4.2, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+    slide6.addText(segment.description, { x: xPos + 0.15, y: yPos + 0.4, w: 4.2, h: 0.5, fontSize: 9, color: "4A4A4A", valign: "top" });
+  });
+  slide6.addShape(pptx.ShapeType.rect, { x: 0.5, y: 3.9, w: 9, h: 0.8, fill: { color: "E8F4F8" } });
+  slide6.addText(content.markets.crossFunctionalTitle, { x: 0.7, y: 3.95, w: 8.6, h: 0.3, fontSize: 12, bold: true, color: "1A1A1A" });
+  slide6.addText(content.markets.crossFunctionalText, { x: 0.7, y: 4.25, w: 8.6, h: 0.4, fontSize: 10, color: "4A4A4A" });
+
+  // Slide 7: Clients
+  const slide7 = pptx.addSlide();
+  slide7.addText(content.clients.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide7.addText(content.clients.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  slide7.addText(content.clients.intro, { x: 0.5, y: 1.4, w: 9, h: 0.5, fontSize: 11, color: "4A4A4A" });
+  content.clients.clientTypes.forEach((client, i) => {
+    const yPos = 2 + i * 0.8;
+    slide7.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.7, fill: { color: lightBg } });
+    slide7.addText(client.title, { x: 0.7, y: yPos + 0.05, w: 8.6, h: 0.25, fontSize: 12, bold: true, color: primaryColor });
+    slide7.addText(client.description, { x: 0.7, y: yPos + 0.3, w: 8.6, h: 0.35, fontSize: 10, color: "4A4A4A" });
+  });
+
+  // Slide 8: Value
+  const slide8 = pptx.addSlide();
+  slide8.addText(content.value.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide8.addText(content.value.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  content.value.pillars.forEach((pillar, i) => {
+    const xPos = 0.5 + i * 2.35;
+    slide8.addShape(pptx.ShapeType.rect, { x: xPos, y: 1.4, w: 2.2, h: 1, fill: { color: lightBg } });
+    slide8.addText(pillar.title, { x: xPos + 0.1, y: 1.5, w: 2, h: 0.3, fontSize: 14, bold: true, color: primaryColor, align: "center" });
+    slide8.addText(pillar.description, { x: xPos + 0.1, y: 1.8, w: 2, h: 0.5, fontSize: 8, color: "4A4A4A", align: "center", valign: "top" });
+  });
+  slide8.addText("What Sets Us Apart", { x: 0.5, y: 2.6, w: 9, h: 0.4, fontSize: 16, bold: true, color: primaryColor });
+  content.value.differentiators.forEach((diff, i) => {
+    const yPos = 3.1 + i * 0.6;
+    slide8.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.5, fill: { color: lightBg } });
+    slide8.addText(diff.title, { x: 0.7, y: yPos + 0.05, w: 8.6, h: 0.2, fontSize: 11, bold: true, color: primaryColor });
+    slide8.addText(diff.description, { x: 0.7, y: yPos + 0.25, w: 8.6, h: 0.2, fontSize: 9, color: "4A4A4A" });
+  });
+
+  // Slide 9: Contact
+  const slide9 = pptx.addSlide();
+  slide9.addText(content.contact.sectionLabel, { x: 0.5, y: 0.3, w: 9, h: 0.3, fontSize: 12, bold: true, color: primaryColor });
+  slide9.addText(content.contact.title, { x: 0.5, y: 0.7, w: 9, h: 0.6, fontSize: 28, color: "1A1A1A" });
+  slide9.addText(content.contact.intro, { x: 0.5, y: 1.4, w: 6, h: 0.8, fontSize: 12, color: "4A4A4A" });
+  slide9.addText(`Email: ${content.contact.email}`, { x: 0.5, y: 2.4, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide9.addText(`Location: ${content.contact.location}`, { x: 0.5, y: 2.7, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide9.addText(`Website: ${content.contact.website}`, { x: 0.5, y: 3, w: 9, h: 0.3, fontSize: 12, color: "1A1A1A" });
+  slide9.addShape(pptx.ShapeType.rect, { x: 0, y: 4.8, w: 10, h: 0.02, fill: { color: primaryColor } });
+  slide9.addText(`UnifiMed Global Advisory | ${content.contact.email} | ${content.contact.location}`, { x: 0, y: 4.9, w: 10, h: 0.3, fontSize: 10, color: "666666", align: "center" });
+
+  await pptx.writeFile({ fileName: "UnifiMed-Proposal.pptx" });
 };

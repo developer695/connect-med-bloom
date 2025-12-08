@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, FileDown, Loader2 } from "lucide-react";
+import { FileText, FileDown, Loader2, Presentation } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { exportToWord, exportToPDF } from "@/utils/exportProposal";
+import { exportToWord, exportToPDF, exportToPowerPoint } from "@/utils/exportProposal";
 import { useToast } from "@/hooks/use-toast";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 const ExportDialog = () => {
-  const [isExporting, setIsExporting] = useState<"pdf" | "word" | null>(null);
+  const [isExporting, setIsExporting] = useState<"pdf" | "word" | "pptx" | null>(null);
   const { toast } = useToast();
   const { content } = useProposalContent();
 
@@ -51,6 +51,26 @@ const ExportDialog = () => {
       toast({
         title: "Export Failed",
         description: "There was an error exporting the document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportPPTX = async () => {
+    setIsExporting("pptx");
+    try {
+      await exportToPowerPoint(content);
+      toast({
+        title: "PowerPoint Exported",
+        description: "Your proposal has been downloaded as a PowerPoint file. Import this into Canva.",
+      });
+    } catch (error) {
+      console.error("PPTX export error:", error);
+      toast({
+        title: "Export Failed",
+        description: "There was an error exporting the PowerPoint. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -111,6 +131,26 @@ const ExportDialog = () => {
               <div className="font-semibold">PDF Document</div>
               <div className="text-xs text-muted-foreground">
                 Download all 9 pages as PDF
+              </div>
+            </div>
+          </Button>
+          <Button
+            variant="outline"
+            className="justify-start gap-3 h-auto py-4"
+            onClick={handleExportPPTX}
+            disabled={isExporting !== null}
+          >
+            {isExporting === "pptx" ? (
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <Presentation className="w-5 h-5 text-orange-600" />
+              </div>
+            )}
+            <div className="text-left">
+              <div className="font-semibold">PowerPoint (Canva)</div>
+              <div className="text-xs text-muted-foreground">
+                Download as .pptx for Canva import
               </div>
             </div>
           </Button>
