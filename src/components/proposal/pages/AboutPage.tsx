@@ -3,15 +3,17 @@ import { Globe, Target, TrendingUp } from "lucide-react";
 import EditableText from "../EditableText";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
+const icons = [Globe, Target, TrendingUp];
+
 const AboutPage = () => {
   const { content, updateContent } = useProposalContent();
   const { about } = content;
 
-  const stats = [
-    { icon: Globe, title: "Global Reach", desc: "Supporting international MedTech innovators entering the US market" },
-    { icon: Target, title: "Focused Expertise", desc: "Specialized in early-stage MedTech commercialization strategies" },
-    { icon: TrendingUp, title: "Proven Results", desc: "Track record with startups and Fortune 500 companies" },
-  ];
+  const updateStat = (index: number, field: "title" | "description", value: string) => {
+    const newStats = [...about.stats];
+    newStats[index] = { ...newStats[index], [field]: value };
+    updateContent("about", { stats: newStats });
+  };
 
   return (
     <div className="h-full p-8 md:p-16 bg-card overflow-auto">
@@ -42,19 +44,32 @@ const AboutPage = () => {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
         >
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-              className="p-6 rounded-lg bg-primary-light"
-            >
-              <stat.icon className="w-10 h-10 mb-4 text-primary" />
-              <div className="text-xl font-heading font-bold mb-2 text-foreground">{stat.title}</div>
-              <div className="text-sm text-muted-foreground">{stat.desc}</div>
-            </motion.div>
-          ))}
+          {about.stats.map((stat, index) => {
+            const Icon = icons[index % icons.length];
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
+                className="p-6 rounded-lg bg-primary-light"
+              >
+                <Icon className="w-10 h-10 mb-4 text-primary" />
+                <div className="text-xl font-heading font-bold mb-2 text-foreground">
+                  <EditableText
+                    value={stat.title}
+                    onSave={(val) => updateStat(index, "title", val)}
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <EditableText
+                    value={stat.description}
+                    onSave={(val) => updateStat(index, "description", val)}
+                  />
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
 
         <motion.div

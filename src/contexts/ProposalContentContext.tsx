@@ -15,11 +15,13 @@ export interface ProposalContent {
     paragraphs: string[];
     closing: string;
     signature: string;
+    footer: string;
   };
   about: {
     sectionLabel: string;
     title: string;
     intro: string;
+    stats: { title: string; description: string }[];
     expertiseTitle: string;
     expertiseText: string;
     missionTitle: string;
@@ -79,15 +81,22 @@ export interface ProposalContent {
     sectionLabel: string;
     title: string;
     pillars: { title: string; description: string }[];
+    differentiatorsTitle: string;
     differentiators: { title: string; description: string }[];
   };
   contact: {
     sectionLabel: string;
     title: string;
+    conversationTitle: string;
     intro: string;
     email: string;
     location: string;
     website: string;
+    nextStepsTitle: string;
+    nextSteps: { title: string; description: string }[];
+    ctaButton: string;
+    academyTitle: string;
+    academyText: string;
   };
 }
 
@@ -113,11 +122,17 @@ const defaultContent: ProposalContent = {
     ],
     closing: "Sincerely,",
     signature: "The UnifiMed Leadership Team",
+    footer: "UnifiMed Global Advisory | info@unifimed.com | United States",
   },
   about: {
     sectionLabel: "COMPANY OVERVIEW",
     title: "About UnifiMed",
     intro: "UnifiMed is a global advisory firm supporting early-stage MedTech founders and executives on their journey to commercialization in the United States. We provide a comprehensive suite of services, including regulatory guidance, market strategy development, financial support through direct investment and access to capital networks, and operational execution.",
+    stats: [
+      { title: "Global Reach", description: "Supporting international MedTech innovators entering the US market" },
+      { title: "Focused Expertise", description: "Specialized in early-stage MedTech commercialization strategies" },
+      { title: "Proven Results", description: "Track record with startups and Fortune 500 companies" },
+    ],
     expertiseTitle: "Our Expertise",
     expertiseText: "Our team brings a unique combination of clinical, regulatory, and commercial expertise, having successfully led clinical departments, regulatory and reimbursement activities, and commercial strategies and product launches for several startup and Fortune 500 companies. Leveraging our extensive knowledge and network, we help MedTech innovators achieve sustainable growth and establish a strong foothold in the U.S. healthcare market.",
     missionTitle: "Our Mission",
@@ -240,6 +255,7 @@ const defaultContent: ProposalContent = {
       { title: "Scale", description: "Our scalable ecosystem model grows with your organization, providing the resources, expertise, and strategic guidance needed at each stage of development, from initial concept through commercial expansion." },
       { title: "Optimize", description: "We continuously refine strategies based on real-world feedback and market dynamics, ensuring your approach remains optimized for maximum commercial impact and return on investment." },
     ],
+    differentiatorsTitle: "Competitive Differentiators",
     differentiators: [
       { title: "Integrated Ecosystem Approach", description: "Unlike fragmented consultancies, we provide end-to-end support across all critical functions" },
       { title: "Deep Clinical & Commercial Expertise", description: "Our team has led successful commercializations for both startups and Fortune 500 companies" },
@@ -251,10 +267,21 @@ const defaultContent: ProposalContent = {
   contact: {
     sectionLabel: "GET IN TOUCH",
     title: "Contact Us",
+    conversationTitle: "Let's Start a Conversation",
     intro: "We welcome the opportunity to discuss how UnifiMed can support your commercialization objectives. Whether you're an early-stage founder, an established MedTech company, or an investor seeking to maximize portfolio value, we're here to help.",
     email: "info@unifimed.com",
     location: "United States",
     website: "unifimed.com",
+    nextStepsTitle: "Next Steps",
+    nextSteps: [
+      { title: "Initial Consultation", description: "Schedule a complimentary consultation to discuss your needs" },
+      { title: "Assessment", description: "We'll conduct a preliminary evaluation of your technology" },
+      { title: "Proposal", description: "Receive a customized proposal outlining our recommended approach" },
+      { title: "Partnership", description: "Begin our collaborative journey toward successful commercialization" },
+    ],
+    ctaButton: "Schedule a Consultation",
+    academyTitle: "UnifiMed Academy",
+    academyText: "Explore educational resources and insights at unifimed.academy",
   },
 };
 
@@ -273,12 +300,16 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
     const saved = localStorage.getItem("proposal-content");
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Merge with defaults to ensure new properties are included
+      // Deep merge with defaults to ensure new properties are included
       return {
         ...defaultContent,
         ...parsed,
+        letter: { ...defaultContent.letter, ...parsed.letter },
+        about: { ...defaultContent.about, ...parsed.about },
         team: { ...defaultContent.team, ...parsed.team },
         proposal: { ...defaultContent.proposal, ...parsed.proposal },
+        value: { ...defaultContent.value, ...parsed.value },
+        contact: { ...defaultContent.contact, ...parsed.contact },
       };
     }
     return defaultContent;

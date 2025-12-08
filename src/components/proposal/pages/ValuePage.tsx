@@ -73,7 +73,12 @@ const ValuePage = () => {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="border-t-2 border-primary pt-6 md:pt-8"
         >
-          <h3 className="text-xl md:text-2xl font-heading font-semibold mb-6 text-foreground">Competitive Differentiators</h3>
+          <h3 className="text-xl md:text-2xl font-heading font-semibold mb-6 text-foreground">
+            <EditableText
+              value={value.differentiatorsTitle}
+              onSave={(val) => updateContent("value", { differentiatorsTitle: val })}
+            />
+          </h3>
 
           <div className="space-y-4">
             {value.differentiators.map((diff, index) => (
