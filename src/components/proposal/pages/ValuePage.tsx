@@ -102,8 +102,8 @@ const ValuePage = () => {
               onDragStart={(e) => handlePillarDragStart(e as any, index)}
               onDragOver={(e) => handlePillarDragOver(e as any, index)}
               onDragEnd={handlePillarDragEnd}
-              className={`relative p-4 rounded-lg border-2 ${
-                isEditMode ? 'border-border/50 cursor-grab active:cursor-grabbing hover:border-primary/30' : 'border-transparent'
+              className={`relative p-5 rounded-lg border-2 border-border bg-muted/30 hover:border-primary/50 transition-colors ${
+                isEditMode ? 'cursor-grab active:cursor-grabbing' : ''
               } ${
                 dragOverPillarIndex === index ? 'ring-2 ring-primary ring-dashed' : ''
               } ${
