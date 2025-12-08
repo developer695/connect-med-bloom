@@ -86,7 +86,7 @@ export interface ProposalContent {
   solutions: {
     sectionLabel: string;
     title: string;
-    services: { title: string; description: string }[];
+    services: { title: string; description: string; defaultDeliverables: string[] }[];
     integratedTitle: string;
     integratedText: string;
   };
@@ -209,12 +209,12 @@ const defaultContent: ProposalContent = {
     sectionLabel: "CORE CAPABILITIES",
     title: "Our Solutions",
     services: [
-      { title: "Capital & Investment", description: "We provide direct investment opportunities and facilitate access to our extensive network of venture capital and private equity partners. Our capital solutions include seed and early-stage funding, growth capital connections, strategic investment structuring, and investor relations support." },
-      { title: "Clinical Expertise", description: "Our clinical team provides comprehensive support for clinical validation and evidence generation. Services include clinical trial design and management, clinical advisory board development, key opinion leader engagement, real-world evidence strategy, and clinical data analysis and publication support." },
-      { title: "Talent Acquisition", description: "We help build world-class teams by connecting you with top-tier talent across all functional areas. Our talent services include executive search and placement, advisory board formation, functional team building, organizational design consulting, and ongoing talent development support." },
-      { title: "Commercial Development", description: "We develop and execute comprehensive commercialization strategies tailored to your technology and market opportunity. Services include market analysis and segmentation, go-to-market strategy development, sales force design and training, marketing and brand positioning, and partnership and channel development." },
-      { title: "Regulatory Submissions", description: "Our regulatory experts navigate complex FDA pathways to accelerate approval timelines. We provide regulatory strategy development, pathway assessment and optimization, submission preparation and management, FDA communication and meeting preparation, and post-market compliance support." },
-      { title: "Market Access & Reimbursement", description: "We develop comprehensive strategies to ensure appropriate reimbursement and market access. Services include reimbursement pathway analysis, health economics and outcomes research, payer engagement and contracting, coding and coverage strategy, and value proposition development." },
+      { title: "Capital & Investment", description: "We provide direct investment opportunities and facilitate access to our extensive network of venture capital and private equity partners. Our capital solutions include seed and early-stage funding, growth capital connections, strategic investment structuring, and investor relations support.", defaultDeliverables: ["Investor Materials"] },
+      { title: "Clinical Expertise", description: "Our clinical team provides comprehensive support for clinical validation and evidence generation. Services include clinical trial design and management, clinical advisory board development, key opinion leader engagement, real-world evidence strategy, and clinical data analysis and publication support.", defaultDeliverables: ["Clinical Evidence Plan"] },
+      { title: "Talent Acquisition", description: "We help build world-class teams by connecting you with top-tier talent across all functional areas. Our talent services include executive search and placement, advisory board formation, functional team building, organizational design consulting, and ongoing talent development support.", defaultDeliverables: [] },
+      { title: "Commercial Development", description: "We develop and execute comprehensive commercialization strategies tailored to your technology and market opportunity. Services include market analysis and segmentation, go-to-market strategy development, sales force design and training, marketing and brand positioning, and partnership and channel development.", defaultDeliverables: ["Market Assessment Report", "Commercial Roadmap"] },
+      { title: "Regulatory Submissions", description: "Our regulatory experts navigate complex FDA pathways to accelerate approval timelines. We provide regulatory strategy development, pathway assessment and optimization, submission preparation and management, FDA communication and meeting preparation, and post-market compliance support.", defaultDeliverables: ["Regulatory Strategy Document"] },
+      { title: "Market Access & Reimbursement", description: "We develop comprehensive strategies to ensure appropriate reimbursement and market access. Services include reimbursement pathway analysis, health economics and outcomes research, payer engagement and contracting, coding and coverage strategy, and value proposition development.", defaultDeliverables: ["Reimbursement Analysis"] },
     ],
     integratedTitle: "Integrated Service Model",
     integratedText: "While each service can be engaged independently, our true value lies in our integrated approach. By coordinating across regulatory, clinical, commercial, and financial dimensions, we create synergies that accelerate timelines, reduce costs, and increase the probability of commercial success.",
