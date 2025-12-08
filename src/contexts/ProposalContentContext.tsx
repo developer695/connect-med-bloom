@@ -124,6 +124,8 @@ export interface ProposalContent {
   proposal: {
     sectionLabel: string;
     title: string;
+    projectTeamTitle: string;
+    projectTeam: { name: string; title: string; bio: string; image?: string }[];
     scopeTitle: string;
     scopeText: string;
     deliverablesTitle: string;
@@ -270,6 +272,11 @@ const defaultContent: ProposalContent = {
   proposal: {
     sectionLabel: "ENGAGEMENT PROPOSAL",
     title: "Scope & Pricing",
+    projectTeamTitle: "Your Project Team",
+    projectTeam: [
+      { name: "Jordan Foster", title: "Managing Partner", bio: "Project lead with 15+ years in MedTech commercialization strategy.", image: "" },
+      { name: "Mike Chen", title: "Regulatory Lead", bio: "FDA pathway expert specializing in device submissions and clearances.", image: "" },
+    ],
     scopeTitle: "Scope of Engagement",
     scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
     deliverablesTitle: "Key Deliverables",
@@ -541,6 +548,8 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
           proposal: { 
             ...defaultContent.proposal, 
             ...parsed.proposal,
+            projectTeamTitle: parsed.proposal?.projectTeamTitle || defaultContent.proposal.projectTeamTitle,
+            projectTeam: parsed.proposal?.projectTeam || defaultContent.proposal.projectTeam,
             deliverables: migratedDeliverables,
             hiddenDeliverables: migratedHiddenDeliverables,
             packages: migratedPackages,
