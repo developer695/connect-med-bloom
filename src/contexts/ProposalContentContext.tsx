@@ -464,12 +464,24 @@ export const formatPrice = (amount: number): string => {
   }).format(amount);
 };
 
+export interface SavedProposal {
+  id: string;
+  name: string;
+  clientName: string;
+  savedAt: string;
+  content: ProposalContent;
+}
+
 interface ProposalContextType {
   content: ProposalContent;
   updateContent: <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => void;
   isEditMode: boolean;
   setIsEditMode: (value: boolean) => void;
   resetContent: () => void;
+  saveProposal: (name: string, clientName: string) => void;
+  loadProposal: (proposal: SavedProposal) => void;
+  getSavedProposals: () => SavedProposal[];
+  deleteProposal: (id: string) => void;
 }
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
@@ -590,8 +602,50 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
     localStorage.removeItem("proposal-content");
   };
 
+  const saveProposal = (name: string, clientName: string) => {
+    const savedProposals = getSavedProposals();
+    const newProposal: SavedProposal = {
+      id: Date.now().toString(),
+      name,
+      clientName,
+      savedAt: new Date().toISOString(),
+      content,
+    };
+    savedProposals.push(newProposal);
+    localStorage.setItem("saved-proposals", JSON.stringify(savedProposals));
+  };
+
+  const loadProposal = (proposal: SavedProposal) => {
+    setContent(proposal.content);
+    localStorage.setItem("proposal-content", JSON.stringify(proposal.content));
+  };
+
+  const getSavedProposals = (): SavedProposal[] => {
+    try {
+      const saved = localStorage.getItem("saved-proposals");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const deleteProposal = (id: string) => {
+    const savedProposals = getSavedProposals().filter(p => p.id !== id);
+    localStorage.setItem("saved-proposals", JSON.stringify(savedProposals));
+  };
+
   return (
-    <ProposalContentContext.Provider value={{ content, updateContent, isEditMode, setIsEditMode, resetContent }}>
+    <ProposalContentContext.Provider value={{ 
+      content, 
+      updateContent, 
+      isEditMode, 
+      setIsEditMode, 
+      resetContent,
+      saveProposal,
+      loadProposal,
+      getSavedProposals,
+      deleteProposal,
+    }}>
       {children}
     </ProposalContentContext.Provider>
   );

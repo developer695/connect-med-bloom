@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera } from "lucide-react";
-import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FolderOpen, FilePlus, Archive } from "lucide-react";
+import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable, SavedProposal } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,13 +11,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 
 const EditSidebar = () => {
-  const { content, updateContent, isEditMode } = useProposalContent();
+  const { content, updateContent, isEditMode, resetContent, saveProposal, loadProposal, getSavedProposals, deleteProposal } = useProposalContent();
   const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
   const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
   const [expandedTeamMember, setExpandedTeamMember] = useState<number | null>(null);
   const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
   const [showAddTeamMember, setShowAddTeamMember] = useState(false);
   const [newTeamMember, setNewTeamMember] = useState({ name: '', title: '', bio: '', image: '' });
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [saveFormData, setSaveFormData] = useState({ name: '', clientName: '' });
+  const [savedProposals, setSavedProposals] = useState<SavedProposal[]>([]);
   const teamFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newTeamFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -165,7 +169,148 @@ const EditSidebar = () => {
       <div className="p-3 border-b border-border bg-background">
         <h3 className="font-semibold text-sm text-foreground">Proposal Settings</h3>
         <p className="text-xs text-muted-foreground mt-1">Configure deliverables and pricing</p>
+        
+        {/* Proposal Management Buttons */}
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={() => {
+              setSaveFormData({ name: '', clientName: '' });
+              setShowSaveDialog(true);
+            }}
+            className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
+          >
+            <Save className="w-3 h-3" />
+            Save
+          </button>
+          <button
+            onClick={() => {
+              setSavedProposals(getSavedProposals());
+              setShowLoadDialog(true);
+            }}
+            className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
+          >
+            <FolderOpen className="w-3 h-3" />
+            Load
+          </button>
+          <button
+            onClick={() => {
+              if (confirm('Start a new proposal? Current unsaved changes will be lost.')) {
+                resetContent();
+              }
+            }}
+            className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
+          >
+            <FilePlus className="w-3 h-3" />
+            New
+          </button>
+        </div>
       </div>
+
+      {/* Save Dialog */}
+      {showSaveDialog && (
+        <div className="p-3 border-b border-border bg-primary/5">
+          <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
+            <Archive className="w-3 h-3" />
+            Save Proposal
+          </h4>
+          <div className="space-y-2">
+            <Input
+              value={saveFormData.name}
+              onChange={(e) => setSaveFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Proposal name..."
+              className="h-7 text-xs"
+            />
+            <Input
+              value={saveFormData.clientName}
+              onChange={(e) => setSaveFormData(prev => ({ ...prev, clientName: e.target.value }))}
+              placeholder="Client name..."
+              className="h-7 text-xs"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (saveFormData.name.trim()) {
+                    saveProposal(saveFormData.name.trim(), saveFormData.clientName.trim());
+                    setShowSaveDialog(false);
+                    setSaveFormData({ name: '', clientName: '' });
+                  }
+                }}
+                className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowSaveDialog(false)}
+                className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Load Dialog */}
+      {showLoadDialog && (
+        <div className="p-3 border-b border-border bg-muted/30 max-h-64 overflow-y-auto">
+          <h4 className="text-xs font-semibold mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <FolderOpen className="w-3 h-3" />
+              Saved Proposals
+            </span>
+            <button
+              onClick={() => setShowLoadDialog(false)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              ✕
+            </button>
+          </h4>
+          {savedProposals.length === 0 ? (
+            <p className="text-[10px] text-muted-foreground py-2">No saved proposals yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {savedProposals.map((proposal) => (
+                <div
+                  key={proposal.id}
+                  className="p-2 rounded bg-background border border-border/50 hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{proposal.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{proposal.clientName || 'No client'}</p>
+                      <p className="text-[10px] text-muted-foreground/70">
+                        {new Date(proposal.savedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          loadProposal(proposal);
+                          setShowLoadDialog(false);
+                        }}
+                        className="h-6 px-2 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('Delete this saved proposal?')) {
+                            deleteProposal(proposal.id);
+                            setSavedProposals(getSavedProposals());
+                          }
+                        }}
+                        className="h-6 px-1.5 text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
