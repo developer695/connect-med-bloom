@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera } from "lucide-react";
 import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,32 @@ const EditSidebar = () => {
   const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
   const [showAddTeamMember, setShowAddTeamMember] = useState(false);
   const [newTeamMember, setNewTeamMember] = useState({ name: '', title: '', bio: '', image: '' });
+  const teamFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const newTeamFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleTeamImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newTeam = [...(proposal.projectTeam || [])];
+        newTeam[index] = { ...newTeam[index], image: reader.result as string };
+        updateContent("proposal", { projectTeam: newTeam });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleNewTeamImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewTeamMember(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   if (!isEditMode) return null;
 
@@ -212,17 +238,27 @@ const EditSidebar = () => {
                         />
                       </div>
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">Image URL (optional)</Label>
-                        <Input
-                          value={member.image || ''}
-                          onChange={(e) => {
-                            const newTeam = [...(proposal.projectTeam || [])];
-                            newTeam[index] = { ...newTeam[index], image: e.target.value };
-                            updateContent("proposal", { projectTeam: newTeam });
-                          }}
-                          placeholder="https://..."
-                          className="h-7 text-xs mt-1"
+                        <Label className="text-[10px] text-muted-foreground">Photo</Label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={(el) => (teamFileInputRefs.current[index] = el)}
+                          onChange={(e) => handleTeamImageUpload(index, e)}
+                          className="hidden"
                         />
+                        <button
+                          onClick={() => teamFileInputRefs.current[index]?.click()}
+                          className="w-full mt-1 h-16 rounded-md border border-dashed border-border/50 flex flex-col items-center justify-center gap-1 hover:bg-muted/30 transition-colors overflow-hidden"
+                        >
+                          {member.image ? (
+                            <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <Camera className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-[10px] text-muted-foreground">Upload photo</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                       <button
                         onClick={() => {
@@ -261,6 +297,28 @@ const EditSidebar = () => {
                     placeholder="Brief bio..."
                     className="text-xs min-h-[40px]"
                   />
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={newTeamFileInputRef}
+                      onChange={handleNewTeamImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => newTeamFileInputRef.current?.click()}
+                      className="w-full h-12 rounded-md border border-dashed border-border/50 flex items-center justify-center gap-2 hover:bg-muted/30 transition-colors overflow-hidden"
+                    >
+                      {newTeamMember.image ? (
+                        <img src={newTeamMember.image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <Camera className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">Upload photo</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
