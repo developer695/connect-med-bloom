@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import EditableText from "../EditableText";
 import DraggableList from "../DraggableList";
-import { useProposalContent } from "@/contexts/ProposalContentContext";
-
-type Deliverable = { title: string; description: string };
-type Package = { name: string; description: string; price: string; duration: string; features: string[] };
+import { useProposalContent, Deliverable, Package, calculatePackagePrice, formatPrice } from "@/contexts/ProposalContentContext";
 
 const ProposalPage = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
@@ -16,18 +14,39 @@ const ProposalPage = () => {
     updateContent("proposal", { packages: newPackages });
   };
 
-  const updatePackageFeature = (pkgIndex: number, featureIndex: number, value: string) => {
-    const newPackages = [...proposal.packages];
-    const newFeatures = [...newPackages[pkgIndex].features];
-    newFeatures[featureIndex] = value;
-    newPackages[pkgIndex] = { ...newPackages[pkgIndex], features: newFeatures };
-    updateContent("proposal", { packages: newPackages });
-  };
-
   const updateDeliverable = (index: number, field: "title" | "description", value: string) => {
     const newDeliverables = [...proposal.deliverables];
     newDeliverables[index] = { ...newDeliverables[index], [field]: value };
     updateContent("proposal", { deliverables: newDeliverables });
+  };
+
+  // Toggle deliverable inclusion in a package
+  const toggleDeliverableInPackage = (pkgIndex: number, deliverableTitle: string) => {
+    const newPackages = [...proposal.packages];
+    const pkg = newPackages[pkgIndex];
+    const currentInclusions = pkg.includedDeliverables || [];
+    
+    if (currentInclusions.includes(deliverableTitle)) {
+      newPackages[pkgIndex] = {
+        ...pkg,
+        includedDeliverables: currentInclusions.filter(t => t !== deliverableTitle),
+      };
+    } else {
+      newPackages[pkgIndex] = {
+        ...pkg,
+        includedDeliverables: [...currentInclusions, deliverableTitle],
+      };
+    }
+    updateContent("proposal", { packages: newPackages });
+  };
+
+  // Get calculated or manual price for a package
+  const getPackagePrice = (pkg: Package): string => {
+    if (pkg.autoCalculate && pkg.includedDeliverables?.length > 0) {
+      const calculatedPrice = calculatePackagePrice(pkg.includedDeliverables, proposal.deliverables);
+      return formatPrice(calculatedPrice);
+    }
+    return pkg.price;
   };
 
   // Deliverables handlers
@@ -124,7 +143,7 @@ const ProposalPage = () => {
           </h3>
           <DraggableList
             items={proposal.deliverables}
-            hiddenItems={[]} // Hidden items now in sidebar
+            hiddenItems={[]}
             onReorder={handleReorderDeliverables}
             onRemove={handleRemoveDeliverable}
             onAdd={handleAddDeliverable}
@@ -145,6 +164,15 @@ const ProposalPage = () => {
                     multiline
                   />
                 </p>
+                {isEditMode && (
+                  <div className="mt-3 pt-3 border-t border-border/30 flex gap-4 text-xs text-muted-foreground">
+                    <span>Rate: ${deliverable.rate}/hr</span>
+                    <span>Hours: {deliverable.hours}</span>
+                    <span className="text-primary font-medium">
+                      Total: {formatPrice(deliverable.rate * deliverable.hours)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
             renderHiddenItem={(item) => item.title}
@@ -165,7 +193,7 @@ const ProposalPage = () => {
             />
           </h3>
           
-          {/* Packages with drag and drop */}
+          {/* Packages */}
           <div className="space-y-4">
             <div className={`grid gap-6 ${proposal.packages.length === 1 ? 'grid-cols-1 max-w-md' : proposal.packages.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
               {proposal.packages.map((pkg, pkgIndex) => (
@@ -201,29 +229,64 @@ const ProposalPage = () => {
                     />
                   </p>
                   <div className="text-2xl font-bold text-primary mb-1">
-                    <EditableText
-                      value={pkg.price}
-                      onSave={(val) => updatePackage(pkgIndex, "price", val)}
-                    />
+                    {pkg.autoCalculate ? (
+                      <span>{getPackagePrice(pkg)}</span>
+                    ) : (
+                      <EditableText
+                        value={pkg.price}
+                        onSave={(val) => updatePackage(pkgIndex, "price", val)}
+                      />
+                    )}
                   </div>
+                  {isEditMode && pkg.autoCalculate && (
+                    <p className="text-xs text-muted-foreground/70 mb-2">Auto-calculated from deliverables</p>
+                  )}
                   <p className="text-xs text-muted-foreground mb-4">
                     <EditableText
                       value={pkg.duration}
                       onSave={(val) => updatePackage(pkgIndex, "duration", val)}
                     />
                   </p>
+                  
+                  {/* Included Deliverables as checkmarks */}
                   <ul className="space-y-2">
-                    {pkg.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-2">
-                        <span className="text-primary mt-1">✓</span>
-                        <span className="text-sm text-muted-foreground">
-                          <EditableText
-                            value={feature}
-                            onSave={(val) => updatePackageFeature(pkgIndex, featureIndex, val)}
-                          />
-                        </span>
-                      </li>
-                    ))}
+                    {proposal.deliverables.map((deliverable) => {
+                      const isIncluded = pkg.includedDeliverables?.includes(deliverable.title);
+                      
+                      if (isEditMode) {
+                        // In edit mode, show all deliverables as toggleable
+                        return (
+                          <li 
+                            key={deliverable.title} 
+                            className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 rounded p-1 -ml-1 transition-colors"
+                            onClick={() => toggleDeliverableInPackage(pkgIndex, deliverable.title)}
+                          >
+                            <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
+                              isIncluded 
+                                ? 'bg-primary border-primary text-primary-foreground' 
+                                : 'border-muted-foreground/30'
+                            }`}>
+                              {isIncluded && <Check className="w-3 h-3" />}
+                            </span>
+                            <span className={`text-sm ${isIncluded ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                              {deliverable.title}
+                            </span>
+                          </li>
+                        );
+                      }
+                      
+                      // In view mode, only show included deliverables
+                      if (!isIncluded) return null;
+                      
+                      return (
+                        <li key={deliverable.title} className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground">
+                            {deliverable.title}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </motion.div>
               ))}
