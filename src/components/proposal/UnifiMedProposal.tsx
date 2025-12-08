@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import EditModeToggle from "./EditModeToggle";
+import EditSidebar from "./EditSidebar";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -32,6 +34,7 @@ const pages = [
 ];
 
 const UnifiMedProposal = () => {
+  const { isEditMode } = useProposalContent();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -75,29 +78,35 @@ const UnifiMedProposal = () => {
 
   return (
     <div className="w-full min-h-screen bg-background flex flex-col">
-      {/* Main content area */}
-      <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center p-2 md:p-4">
-          <div id="proposal-content" className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
-            <AnimatePresence initial={false} custom={direction} mode="wait">
-              <motion.div
-                key={currentPage}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{
-                  x: { type: "spring", stiffness: 300, damping: 30 },
-                  opacity: { duration: 0.2 },
-                }}
-                className="w-full h-full"
-              >
-                <CurrentPageComponent />
-              </motion.div>
-            </AnimatePresence>
+      {/* Main content area with optional sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Document area */}
+        <div className="flex-1 relative overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center p-2 md:p-4">
+            <div id="proposal-content" className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
+              <AnimatePresence initial={false} custom={direction} mode="wait">
+                <motion.div
+                  key={currentPage}
+                  custom={direction}
+                  variants={variants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 },
+                  }}
+                  className="w-full h-full"
+                >
+                  <CurrentPageComponent />
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
+        
+        {/* Edit sidebar - outside the document */}
+        {isEditMode && <EditSidebar />}
       </div>
 
       {/* Navigation bar */}

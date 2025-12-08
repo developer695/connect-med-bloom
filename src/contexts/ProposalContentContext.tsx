@@ -90,8 +90,10 @@ export interface ProposalContent {
     sectionLabel: string;
     title: string;
     pillars: { title: string; description: string }[];
+    hiddenPillars: { title: string; description: string }[];
     differentiatorsTitle: string;
     differentiators: { title: string; description: string }[];
+    hiddenDifferentiators: { title: string; description: string }[];
   };
   contact: {
     sectionLabel: string;
@@ -268,6 +270,7 @@ const defaultContent: ProposalContent = {
       { title: "Scale", description: "Our scalable ecosystem model grows with your organization, providing the resources, expertise, and strategic guidance needed at each stage of development, from initial concept through commercial expansion." },
       { title: "Optimize", description: "We continuously refine strategies based on real-world feedback and market dynamics, ensuring your approach remains optimized for maximum commercial impact and return on investment." },
     ],
+    hiddenPillars: [],
     differentiatorsTitle: "Competitive Differentiators",
     differentiators: [
       { title: "Integrated Ecosystem Approach", description: "Unlike fragmented consultancies, we provide end-to-end support across all critical functions" },
@@ -276,6 +279,7 @@ const defaultContent: ProposalContent = {
       { title: "Hands-On Execution", description: "We don't just provide advice—we roll up our sleeves and execute alongside your team" },
       { title: "Proven Track Record", description: "Our portfolio demonstrates consistent success in navigating complex regulatory and commercial challenges" },
     ],
+    hiddenDifferentiators: [],
   },
   contact: {
     sectionLabel: "CLOSING",
@@ -337,7 +341,12 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
           hiddenDeliverables: parsed.proposal?.hiddenDeliverables || [],
           hiddenPackages: parsed.proposal?.hiddenPackages || [],
         },
-        value: { ...defaultContent.value, ...parsed.value },
+        value: { 
+          ...defaultContent.value, 
+          ...parsed.value,
+          hiddenPillars: parsed.value?.hiddenPillars || [],
+          hiddenDifferentiators: parsed.value?.hiddenDifferentiators || [],
+        },
         contact: { ...defaultContent.contact, ...parsed.contact },
         clients: mergedClients,
         shapes: { ...defaultContent.shapes, ...parsed.shapes },
