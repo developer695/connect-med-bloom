@@ -2,7 +2,15 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import EditableText from "../EditableText";
 import DraggableList from "../DraggableList";
-import { useProposalContent, Deliverable, Package, calculatePackagePrice, formatPrice } from "@/contexts/ProposalContentContext";
+import { 
+  useProposalContent, 
+  Deliverable, 
+  Package, 
+  calculatePackagePrice, 
+  calculatePackageDurationMonths,
+  formatPrice,
+  convertToHours
+} from "@/contexts/ProposalContentContext";
 
 const ProposalPage = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
@@ -49,6 +57,15 @@ const ProposalPage = () => {
     return pkg.price;
   };
 
+  // Get calculated or manual duration for a package
+  const getPackageDuration = (pkg: Package): string => {
+    if (pkg.autoCalculate && pkg.includedDeliverables?.length > 0) {
+      const months = calculatePackageDurationMonths(pkg.includedDeliverables, proposal.deliverables);
+      return `${months}-month engagement`;
+    }
+    return pkg.duration;
+  };
+
   // Deliverables handlers
   const handleReorderDeliverables = (newDeliverables: Deliverable[]) => {
     updateContent("proposal", { deliverables: newDeliverables });
@@ -81,6 +98,12 @@ const ProposalPage = () => {
     const newPackages = [...proposal.packages, item];
     const newHidden = (proposal.hiddenPackages || []).filter(p => p.name !== item.name);
     updateContent("proposal", { packages: newPackages, hiddenPackages: newHidden });
+  };
+
+  // Get time display string for a deliverable
+  const getTimeDisplay = (deliverable: Deliverable): string => {
+    const unitLabels = { hours: 'hr', weeks: 'wk', months: 'mo' };
+    return `${deliverable.timeValue} ${unitLabels[deliverable.timeUnit]}${deliverable.timeValue !== 1 ? 's' : ''}`;
   };
 
   return (
@@ -149,32 +172,37 @@ const ProposalPage = () => {
             onAdd={handleAddDeliverable}
             getItemKey={(item, index) => `${item.title}-${index}`}
             itemsLabel="deliverables"
-            renderItem={(deliverable, index) => (
-              <div className="bg-muted/30 rounded-lg p-4 border border-border/50 h-full pl-8">
-                <h4 className="font-semibold text-foreground mb-2">
-                  <EditableText
-                    value={deliverable.title}
-                    onSave={(val) => updateDeliverable(index, "title", val)}
-                  />
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  <EditableText
-                    value={deliverable.description}
-                    onSave={(val) => updateDeliverable(index, "description", val)}
-                    multiline
-                  />
-                </p>
-                {isEditMode && (
-                  <div className="mt-3 pt-3 border-t border-border/30 flex gap-4 text-xs text-muted-foreground">
-                    <span>Rate: ${deliverable.rate}/hr</span>
-                    <span>Hours: {deliverable.hours}</span>
-                    <span className="text-primary font-medium">
-                      Total: {formatPrice(deliverable.rate * deliverable.hours)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+            renderItem={(deliverable, index) => {
+              const hours = convertToHours(deliverable.timeValue, deliverable.timeUnit);
+              const total = deliverable.rate * hours;
+              
+              return (
+                <div className="bg-muted/30 rounded-lg p-4 border border-border/50 h-full pl-8">
+                  <h4 className="font-semibold text-foreground mb-2">
+                    <EditableText
+                      value={deliverable.title}
+                      onSave={(val) => updateDeliverable(index, "title", val)}
+                    />
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    <EditableText
+                      value={deliverable.description}
+                      onSave={(val) => updateDeliverable(index, "description", val)}
+                      multiline
+                    />
+                  </p>
+                  {isEditMode && (
+                    <div className="mt-3 pt-3 border-t border-border/30 flex gap-4 text-xs text-muted-foreground">
+                      <span>Rate: ${deliverable.rate}/hr</span>
+                      <span>Duration: {getTimeDisplay(deliverable)}</span>
+                      <span className="text-primary font-medium">
+                        Total: {formatPrice(total)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            }}
             renderHiddenItem={(item) => item.title}
           />
         </motion.div>
@@ -242,10 +270,14 @@ const ProposalPage = () => {
                     <p className="text-xs text-muted-foreground/70 mb-2">Auto-calculated from deliverables</p>
                   )}
                   <p className="text-xs text-muted-foreground mb-4">
-                    <EditableText
-                      value={pkg.duration}
-                      onSave={(val) => updatePackage(pkgIndex, "duration", val)}
-                    />
+                    {pkg.autoCalculate ? (
+                      <span>{getPackageDuration(pkg)}</span>
+                    ) : (
+                      <EditableText
+                        value={pkg.duration}
+                        onSave={(val) => updatePackage(pkgIndex, "duration", val)}
+                      />
+                    )}
                   </p>
                   
                   {/* Included Deliverables as checkmarks */}

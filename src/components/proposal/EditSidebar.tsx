@@ -1,9 +1,10 @@
 import { Plus, DollarSign, Clock } from "lucide-react";
-import { useProposalContent, Deliverable, Package, formatPrice } from "@/contexts/ProposalContentContext";
+import { useProposalContent, Deliverable, Package, TimeUnit, formatPrice, convertToHours } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const EditSidebar = () => {
   const { content, updateContent, isEditMode } = useProposalContent();
@@ -18,9 +19,15 @@ const EditSidebar = () => {
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
-  const updateDeliverableHours = (index: number, hours: number) => {
+  const updateDeliverableTimeValue = (index: number, timeValue: number) => {
     const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], hours };
+    newDeliverables[index] = { ...newDeliverables[index], timeValue };
+    updateContent("proposal", { deliverables: newDeliverables });
+  };
+
+  const updateDeliverableTimeUnit = (index: number, timeUnit: TimeUnit) => {
+    const newDeliverables = [...proposal.deliverables];
+    newDeliverables[index] = { ...newDeliverables[index], timeUnit };
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
@@ -63,6 +70,14 @@ const EditSidebar = () => {
     (value.hiddenPillars?.length || 0) > 0 ||
     (value.hiddenDifferentiators?.length || 0) > 0;
 
+  const getTimeUnitLabel = (unit: TimeUnit) => {
+    switch (unit) {
+      case 'hours': return 'hrs';
+      case 'weeks': return 'wks';
+      case 'months': return 'mos';
+    }
+  };
+
   return (
     <div className="w-72 bg-muted/50 border-l border-border flex flex-col h-full">
       <div className="p-3 border-b border-border bg-background">
@@ -79,47 +94,71 @@ const EditSidebar = () => {
               Deliverable Pricing
             </h4>
             <div className="space-y-3">
-              {proposal.deliverables.map((deliverable, index) => (
-                <div 
-                  key={`rate-${index}`}
-                  className="p-3 rounded-md bg-background border border-border/50"
-                >
-                  <p className="text-xs font-medium text-foreground mb-2 truncate" title={deliverable.title}>
-                    {deliverable.title}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Rate/hr</Label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                        <Input
-                          type="number"
-                          value={deliverable.rate}
-                          onChange={(e) => updateDeliverableRate(index, parseInt(e.target.value) || 0)}
-                          className="h-7 text-xs pl-5"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label className="text-[10px] text-muted-foreground">Hours</Label>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          value={deliverable.hours}
-                          onChange={(e) => updateDeliverableHours(index, parseInt(e.target.value) || 0)}
-                          className="h-7 text-xs"
-                        />
-                        <Clock className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-border/30">
-                    <p className="text-xs text-primary font-medium">
-                      Total: {formatPrice(deliverable.rate * deliverable.hours)}
+              {proposal.deliverables.map((deliverable, index) => {
+                const hours = convertToHours(deliverable.timeValue, deliverable.timeUnit);
+                const total = deliverable.rate * hours;
+                
+                return (
+                  <div 
+                    key={`rate-${index}`}
+                    className="p-3 rounded-md bg-background border border-border/50"
+                  >
+                    <p className="text-xs font-medium text-foreground mb-2 truncate" title={deliverable.title}>
+                      {deliverable.title}
                     </p>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Hourly Rate</Label>
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            value={deliverable.rate}
+                            onChange={(e) => updateDeliverableRate(index, parseInt(e.target.value) || 0)}
+                            className="h-7 text-xs pl-5"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Duration</Label>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            value={deliverable.timeValue}
+                            onChange={(e) => updateDeliverableTimeValue(index, parseFloat(e.target.value) || 0)}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-muted-foreground">Unit</Label>
+                          <Select
+                            value={deliverable.timeUnit}
+                            onValueChange={(val) => updateDeliverableTimeUnit(index, val as TimeUnit)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hours">Hours</SelectItem>
+                              <SelectItem value="weeks">Weeks</SelectItem>
+                              <SelectItem value="months">Months</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border/30 flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground">
+                        {hours} hrs @ ${deliverable.rate}/hr
+                      </span>
+                      <span className="text-xs text-primary font-medium">
+                        {formatPrice(total)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

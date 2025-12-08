@@ -7,12 +7,28 @@ export interface ShapeConfig {
   height: number;
 }
 
+export type TimeUnit = 'hours' | 'weeks' | 'months';
+
 export interface Deliverable {
   title: string;
   description: string;
   rate: number; // hourly rate in dollars
-  hours: number; // estimated hours
+  timeValue: number; // value in the selected unit
+  timeUnit: TimeUnit; // unit of time
 }
+
+// Convert time value to hours based on unit (40 hours per week, 40 hours per month)
+export const convertToHours = (value: number, unit: TimeUnit): number => {
+  switch (unit) {
+    case 'weeks':
+      return value * 40;
+    case 'months':
+      return value * 40;
+    case 'hours':
+    default:
+      return value;
+  }
+};
 
 export interface Package {
   name: string;
@@ -243,12 +259,12 @@ const defaultContent: ProposalContent = {
     scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
     deliverablesTitle: "Key Deliverables",
     deliverables: [
-      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, hours: 40 },
-      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, hours: 60 },
-      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, hours: 50 },
-      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, hours: 45 },
-      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, hours: 55 },
-      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, hours: 35 },
+      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, timeValue: 1, timeUnit: 'weeks' as TimeUnit },
+      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, timeValue: 1.5, timeUnit: 'weeks' as TimeUnit },
+      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, timeValue: 1, timeUnit: 'weeks' as TimeUnit },
+      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, timeValue: 1, timeUnit: 'weeks' as TimeUnit },
+      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, timeValue: 1, timeUnit: 'weeks' as TimeUnit },
+      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, timeValue: 1, timeUnit: 'weeks' as TimeUnit },
     ],
     hiddenDeliverables: [],
     packagesTitle: "Engagement Options",
@@ -335,7 +351,8 @@ export const calculatePackagePrice = (
   return includedDeliverables.reduce((total, title) => {
     const deliverable = allDeliverables.find(d => d.title === title);
     if (deliverable) {
-      return total + (deliverable.rate * deliverable.hours);
+      const hours = convertToHours(deliverable.timeValue, deliverable.timeUnit);
+      return total + (deliverable.rate * hours);
     }
     return total;
   }, 0);
@@ -349,10 +366,20 @@ export const calculatePackageHours = (
   return includedDeliverables.reduce((total, title) => {
     const deliverable = allDeliverables.find(d => d.title === title);
     if (deliverable) {
-      return total + deliverable.hours;
+      return total + convertToHours(deliverable.timeValue, deliverable.timeUnit);
     }
     return total;
   }, 0);
+};
+
+// Helper to calculate duration in months from deliverables
+export const calculatePackageDurationMonths = (
+  includedDeliverables: string[],
+  allDeliverables: Deliverable[]
+): number => {
+  const totalHours = calculatePackageHours(includedDeliverables, allDeliverables);
+  // Assuming 40 hours per month
+  return Math.ceil(totalHours / 40);
 };
 
 // Format price as currency
@@ -375,13 +402,14 @@ interface ProposalContextType {
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
 
-// Helper to migrate old deliverable format to new format with rate/hours
+// Helper to migrate old deliverable format to new format with rate/timeValue/timeUnit
 const migrateDeliverable = (d: any): Deliverable => {
   return {
     title: d.title || "",
     description: d.description || "",
     rate: d.rate ?? 250,
-    hours: d.hours ?? 40,
+    timeValue: d.timeValue ?? (d.hours ? d.hours / 40 : 1), // Convert old hours to weeks
+    timeUnit: d.timeUnit ?? 'weeks',
   };
 };
 
