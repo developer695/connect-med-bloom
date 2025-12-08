@@ -50,18 +50,22 @@ const ProposalPage = () => {
   };
 
   // Get calculated or manual price for a package
+  // Uses all current deliverables in the Key Deliverables section
   const getPackagePrice = (pkg: Package): string => {
-    if (pkg.autoCalculate && pkg.includedDeliverables?.length > 0) {
-      const calculatedPrice = calculatePackagePrice(pkg.includedDeliverables, proposal.deliverables);
+    if (pkg.autoCalculate) {
+      const allDeliverableTitles = proposal.deliverables.map(d => d.title);
+      const calculatedPrice = calculatePackagePrice(allDeliverableTitles, proposal.deliverables);
       return formatPrice(calculatedPrice);
     }
     return pkg.price;
   };
 
   // Get calculated or manual duration for a package
+  // Uses all current deliverables in the Key Deliverables section
   const getPackageDuration = (pkg: Package): string => {
-    if (pkg.autoCalculate && pkg.includedDeliverables?.length > 0) {
-      const months = calculatePackageDurationMonths(pkg.includedDeliverables, proposal.deliverables);
+    if (pkg.autoCalculate) {
+      const allDeliverableTitles = proposal.deliverables.map(d => d.title);
+      const months = calculatePackageDurationMonths(allDeliverableTitles, proposal.deliverables);
       return `${months}-month engagement`;
     }
     return pkg.duration;
