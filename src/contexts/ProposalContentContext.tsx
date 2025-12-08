@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
+export interface ShapeConfig {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface ProposalContent {
   cover: {
     tagline: string;
@@ -98,6 +105,7 @@ export interface ProposalContent {
     academyTitle: string;
     academyText: string;
   };
+  shapes: Record<string, ShapeConfig>;
 }
 
 const defaultContent: ProposalContent = {
@@ -284,6 +292,7 @@ const defaultContent: ProposalContent = {
     academyTitle: "UnifiMed Academy",
     academyText: "Explore educational resources and insights at unifimed.academy",
   },
+  shapes: {},
 };
 
 interface ProposalContextType {
@@ -302,6 +311,16 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
     if (saved) {
       const parsed = JSON.parse(saved);
       // Deep merge with defaults to ensure new properties are included
+      // Special handling for arrays to ensure new default items are included
+      const mergedClients = {
+        ...defaultContent.clients,
+        ...parsed.clients,
+        // If default has more clientTypes than saved, include the new ones
+        clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
+          ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
+          : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
+      };
+      
       return {
         ...defaultContent,
         ...parsed,
@@ -311,6 +330,8 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
         proposal: { ...defaultContent.proposal, ...parsed.proposal },
         value: { ...defaultContent.value, ...parsed.value },
         contact: { ...defaultContent.contact, ...parsed.contact },
+        clients: mergedClients,
+        shapes: { ...defaultContent.shapes, ...parsed.shapes },
       };
     }
     return defaultContent;
