@@ -271,7 +271,17 @@ const ProposalContentContext = createContext<ProposalContextType | undefined>(un
 export const ProposalContentProvider = ({ children }: { children: ReactNode }) => {
   const [content, setContent] = useState<ProposalContent>(() => {
     const saved = localStorage.getItem("proposal-content");
-    return saved ? JSON.parse(saved) : defaultContent;
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge with defaults to ensure new properties are included
+      return {
+        ...defaultContent,
+        ...parsed,
+        team: { ...defaultContent.team, ...parsed.team },
+        proposal: { ...defaultContent.proposal, ...parsed.proposal },
+      };
+    }
+    return defaultContent;
   });
   const [isEditMode, setIsEditMode] = useState(false);
 
