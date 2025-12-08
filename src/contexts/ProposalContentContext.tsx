@@ -9,17 +9,26 @@ export interface ShapeConfig {
 
 export type DurationUnit = 'weeks' | 'months';
 
+// Constant for weeks per month conversion
+const WEEKS_PER_MONTH = 4.345;
+
 export interface Deliverable {
   title: string;
   description: string;
   rate: number; // hourly rate in dollars
-  hoursPerPeriod: number; // hours per week or month
+  hoursPerPeriod: number; // hours per week (always weekly)
   duration: number; // number of weeks or months
   durationUnit: DurationUnit; // weeks or months
 }
 
 // Calculate total hours from deliverable
+// hoursPerPeriod is always per week, so convert months to weeks if needed
 export const calculateDeliverableHours = (deliverable: Deliverable): number => {
+  if (deliverable.durationUnit === 'months') {
+    // Convert months to weeks, then multiply by hours per week
+    const weeks = deliverable.duration * WEEKS_PER_MONTH;
+    return Math.round(deliverable.hoursPerPeriod * weeks);
+  }
   return deliverable.hoursPerPeriod * deliverable.duration;
 };
 
@@ -384,14 +393,14 @@ export const calculatePackageDurationMonths = (
       if (deliverable.durationUnit === 'months') {
         months = deliverable.duration;
       } else {
-        // Convert weeks to months (approximately 4.33 weeks per month)
-        months = Math.ceil(deliverable.duration / 4);
+        // Convert weeks to months using 4.345 weeks per month
+        months = deliverable.duration / WEEKS_PER_MONTH;
       }
       maxMonths = Math.max(maxMonths, months);
     }
   });
   
-  return maxMonths || 1;
+  return Math.ceil(maxMonths) || 1;
 };
 
 // Format price as currency

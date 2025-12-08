@@ -118,7 +118,7 @@ const EditSidebar = () => {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-[10px] text-muted-foreground">Hours per {deliverable.durationUnit === 'weeks' ? 'Week' : 'Month'}</Label>
+                        <Label className="text-[10px] text-muted-foreground">Hours per Week</Label>
                         <Input
                           type="number"
                           value={deliverable.hoursPerPeriod}
@@ -155,7 +155,7 @@ const EditSidebar = () => {
                     </div>
                     <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>{deliverable.hoursPerPeriod} hrs/{deliverable.durationUnit === 'weeks' ? 'wk' : 'mo'} × {deliverable.duration} {deliverable.durationUnit}</span>
+                        <span>{deliverable.hoursPerPeriod} hrs/wk × {deliverable.duration} {deliverable.durationUnit}</span>
                         <span>{totalHours} total hrs</span>
                       </div>
                       <div className="flex justify-between">
