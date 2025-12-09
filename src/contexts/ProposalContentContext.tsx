@@ -1,4 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
+import { format } from "date-fns";
+
+// Helper to get current date formatted
+const getCurrentDateFormatted = () => format(new Date(), "MMMM yyyy");
+const getCurrentDateFullFormatted = () => format(new Date(), "MMMM d, yyyy");
 
 export interface ShapeConfig {
   x: number;
@@ -168,12 +173,12 @@ const defaultContent: ProposalContent = {
     tagline: "STRATEGIC ADVISORY PROPOSAL",
     title: "Streamlining US Market Entry for MedTech Innovation",
     subtitle: "A comprehensive partnership framework for accelerating commercialization and value creation",
-    date: "December 2025",
+    date: getCurrentDateFormatted(),
     company: "UnifiMed Global Advisory",
     email: "info@unifimed.com",
   },
   letter: {
-    date: "December 5, 2025",
+    date: getCurrentDateFullFormatted(),
     salutation: "Dear Partner,",
     paragraphs: [
       "The journey from MedTech innovation to successful US market commercialization represents one of the most complex and high-stakes challenges in healthcare today. While breakthrough technologies hold immense promise for improving patient outcomes, navigating the intricate regulatory pathways, establishing market access, and securing sustainable reimbursement requires specialized expertise and strategic execution.",
