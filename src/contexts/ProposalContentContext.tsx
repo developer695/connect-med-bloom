@@ -556,10 +556,12 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
         const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
           .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
         
-        return {
+      return {
           ...defaultContent,
           ...parsed,
-          letter: { ...defaultContent.letter, ...parsed.letter },
+          // Always use current dynamic dates
+          cover: { ...defaultContent.cover, ...parsed.cover, date: getCurrentDateFormatted() },
+          letter: { ...defaultContent.letter, ...parsed.letter, date: getCurrentDateFullFormatted() },
           about: { ...defaultContent.about, ...parsed.about },
           team: { ...defaultContent.team, ...parsed.team },
           proposal: { 
@@ -603,19 +605,18 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
   };
 
   const resetContent = () => {
-    // Preserve team member profiles (images and data) across new proposals
-    const preservedTeamMembers = content.team.members;
-    const preservedProjectTeam = content.proposal.projectTeam;
-    
+    // Only reset cover page and proposal page, preserve everything else
     const newContent = {
-      ...defaultContent,
-      team: {
-        ...defaultContent.team,
-        members: preservedTeamMembers,
+      ...content,
+      // Reset cover page with fresh dynamic date
+      cover: {
+        ...defaultContent.cover,
+        date: getCurrentDateFormatted(),
       },
+      // Reset proposal page but preserve project team members
       proposal: {
         ...defaultContent.proposal,
-        projectTeam: preservedProjectTeam,
+        projectTeam: content.proposal.projectTeam,
       },
     };
     
