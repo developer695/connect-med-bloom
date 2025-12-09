@@ -18,6 +18,17 @@ const EditSidebar = () => {
   const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
   const [showAddTeamMember, setShowAddTeamMember] = useState(false);
   const [newTeamMember, setNewTeamMember] = useState({ name: '', title: '', bio: '', image: '' });
+  const [showAddDeliverable, setShowAddDeliverable] = useState(false);
+  const [newDeliverable, setNewDeliverable] = useState({
+    title: '',
+    description: '',
+    rate: 200,
+    hoursPerPeriod: 10,
+    duration: 4,
+    durationUnit: 'weeks' as DurationUnit,
+    subDeliverables: [] as SubDeliverable[]
+  });
+  const [newDeliverableSubInput, setNewDeliverableSubInput] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [saveFormData, setSaveFormData] = useState({ name: '', clientName: '' });
@@ -508,6 +519,191 @@ const EditSidebar = () => {
               Key Deliverables
             </h4>
             <div className="space-y-2">
+              {/* Add New Deliverable Form */}
+              {showAddDeliverable ? (
+                <div className="p-3 rounded-md bg-primary/5 border border-primary/20 space-y-3 mb-2">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Title</Label>
+                    <Input
+                      value={newDeliverable.title}
+                      onChange={(e) => setNewDeliverable(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Deliverable title..."
+                      className="h-7 text-xs mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Description</Label>
+                    <Textarea
+                      value={newDeliverable.description}
+                      onChange={(e) => setNewDeliverable(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Deliverable description..."
+                      className="text-xs min-h-[50px] mt-1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Hourly Rate</Label>
+                      <div className="relative mt-1">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                        <Input
+                          type="number"
+                          value={newDeliverable.rate}
+                          onChange={(e) => setNewDeliverable(prev => ({ ...prev, rate: parseInt(e.target.value) || 0 }))}
+                          className="h-7 text-xs pl-5"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Hours/Week</Label>
+                      <Input
+                        type="number"
+                        value={newDeliverable.hoursPerPeriod}
+                        onChange={(e) => setNewDeliverable(prev => ({ ...prev, hoursPerPeriod: parseInt(e.target.value) || 0 }))}
+                        className="h-7 text-xs mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Duration</Label>
+                      <Input
+                        type="number"
+                        value={newDeliverable.duration}
+                        onChange={(e) => setNewDeliverable(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                        className="h-7 text-xs mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Unit</Label>
+                      <Select
+                        value={newDeliverable.durationUnit}
+                        onValueChange={(val) => setNewDeliverable(prev => ({ ...prev, durationUnit: val as DurationUnit }))}
+                      >
+                        <SelectTrigger className="h-7 text-xs mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border border-border z-50">
+                          <SelectItem value="weeks">Weeks</SelectItem>
+                          <SelectItem value="months">Months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  {/* Sub-deliverables for new deliverable */}
+                  <div className="pt-2 border-t border-border/30">
+                    <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
+                    <div className="space-y-1.5">
+                      {newDeliverable.subDeliverables.map((sub, subIndex) => (
+                        <div key={`new-sub-${subIndex}`} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={sub.included}
+                            onCheckedChange={() => {
+                              const newSubs = [...newDeliverable.subDeliverables];
+                              newSubs[subIndex] = { ...newSubs[subIndex], included: !newSubs[subIndex].included };
+                              setNewDeliverable(prev => ({ ...prev, subDeliverables: newSubs }));
+                            }}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span className="text-[10px] text-foreground flex-1">{sub.name}</span>
+                          <button
+                            onClick={() => {
+                              const newSubs = newDeliverable.subDeliverables.filter((_, i) => i !== subIndex);
+                              setNewDeliverable(prev => ({ ...prev, subDeliverables: newSubs }));
+                            }}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-1 mt-2">
+                        <Input
+                          value={newDeliverableSubInput}
+                          onChange={(e) => setNewDeliverableSubInput(e.target.value)}
+                          placeholder="New item name..."
+                          className="h-6 text-[10px] flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newDeliverableSubInput.trim()) {
+                              setNewDeliverable(prev => ({
+                                ...prev,
+                                subDeliverables: [...prev.subDeliverables, { name: newDeliverableSubInput.trim(), included: true }]
+                              }));
+                              setNewDeliverableSubInput('');
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (newDeliverableSubInput.trim()) {
+                              setNewDeliverable(prev => ({
+                                ...prev,
+                                subDeliverables: [...prev.subDeliverables, { name: newDeliverableSubInput.trim(), included: true }]
+                              }));
+                              setNewDeliverableSubInput('');
+                            }
+                          }}
+                          className="h-6 px-2 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        if (newDeliverable.title.trim()) {
+                          const newDeliverables = [...proposal.deliverables, newDeliverable];
+                          updateContent("proposal", { deliverables: newDeliverables });
+                          setNewDeliverable({
+                            title: '',
+                            description: '',
+                            rate: 200,
+                            hoursPerPeriod: 10,
+                            duration: 4,
+                            durationUnit: 'weeks' as DurationUnit,
+                            subDeliverables: []
+                          });
+                          setNewDeliverableSubInput('');
+                          setShowAddDeliverable(false);
+                        }
+                      }}
+                      className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                    >
+                      Add Deliverable
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewDeliverable({
+                          title: '',
+                          description: '',
+                          rate: 200,
+                          hoursPerPeriod: 10,
+                          duration: 4,
+                          durationUnit: 'weeks' as DurationUnit,
+                          subDeliverables: []
+                        });
+                        setNewDeliverableSubInput('');
+                        setShowAddDeliverable(false);
+                      }}
+                      className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddDeliverable(true)}
+                  className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1 mb-2"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add New Deliverable
+                </button>
+              )}
+              
               {proposal.deliverables.map((deliverable, index) => {
                 const totalHours = calculateDeliverableHours(deliverable);
                 const total = calculateDeliverableCost(deliverable);
