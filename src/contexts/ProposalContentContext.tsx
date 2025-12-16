@@ -526,8 +526,19 @@ const migratePackage = (p: any, index: number, allDeliverableTitles: string[]): 
   };
 };
 
-export const ProposalContentProvider = ({ children }: { children: ReactNode }) => {
+interface ProposalContentProviderProps {
+  children: ReactNode;
+  initialContent?: ProposalContent;
+  readOnly?: boolean;
+}
+
+export const ProposalContentProvider = ({ children, initialContent, readOnly = false }: ProposalContentProviderProps) => {
   const [content, setContent] = useState<ProposalContent>(() => {
+    // If initialContent is provided (e.g., for viewer mode), use it directly
+    if (initialContent) {
+      return initialContent;
+    }
+    
     try {
       const saved = localStorage.getItem("proposal-content");
       if (saved) {
@@ -592,8 +603,12 @@ export const ProposalContentProvider = ({ children }: { children: ReactNode }) =
     return defaultContent;
   });
   const [isEditMode, setIsEditMode] = useState(false);
+  const isReadOnly = readOnly;
 
   const updateContent = <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => {
+    // In read-only mode, don't allow updates
+    if (isReadOnly) return;
+    
     setContent((prev) => {
       const newContent = {
         ...prev,
