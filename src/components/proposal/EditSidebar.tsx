@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FolderOpen, FilePlus, Archive } from "lucide-react";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FolderOpen, FilePlus, Archive, UserPlus } from "lucide-react";
 import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable, SavedProposal } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,12 @@ const EditSidebar = () => {
   const [savedProposals, setSavedProposals] = useState<SavedProposal[]>([]);
   const teamFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newTeamFileInputRef = useRef<HTMLInputElement | null>(null);
+  // Partners (team.members) state
+  const [expandedPartner, setExpandedPartner] = useState<number | null>(null);
+  const [showAddPartner, setShowAddPartner] = useState(false);
+  const [newPartner, setNewPartner] = useState({ name: '', role: '', bio: '', image: '' });
+  const partnerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const newPartnerFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleTeamImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -60,9 +66,44 @@ const EditSidebar = () => {
     }
   };
 
+  const handlePartnerImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newMembers = [...(content.team.members || [])];
+        newMembers[index] = { ...newMembers[index], image: reader.result as string };
+        updateContent("team", { members: newMembers });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleNewPartnerImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPartner(prev => ({ ...prev, image: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addPartnerToProjectTeam = (partner: { name: string; role: string; bio: string; image?: string }) => {
+    const projectTeamMember = {
+      name: partner.name,
+      title: partner.role,
+      bio: partner.bio,
+      image: partner.image || ''
+    };
+    const newProjectTeam = [...(content.proposal.projectTeam || []), projectTeamMember];
+    updateContent("proposal", { projectTeam: newProjectTeam });
+  };
+
   if (!isEditMode) return null;
 
-  const { proposal, value } = content;
+  const { proposal, value, team } = content;
 
   const updateDeliverableRate = (index: number, rate: number) => {
     const newDeliverables = [...proposal.deliverables];
@@ -507,6 +548,205 @@ const EditSidebar = () => {
                 >
                   <Plus className="w-3 h-3" />
                   Add Team Member
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Partners Section (team.members from page 9) */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Partners (Our Team)
+            </h4>
+            <div className="space-y-2">
+              {team.members?.map((partner, index) => (
+                <Collapsible
+                  key={`partner-${index}`}
+                  open={expandedPartner === index}
+                  onOpenChange={(open) => setExpandedPartner(open ? index : null)}
+                >
+                  <CollapsibleTrigger className="w-full">
+                    <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold text-primary overflow-hidden">
+                          {partner.image ? (
+                            <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
+                          ) : (
+                            partner.name.split(' ').map(n => n[0]).join('')
+                          )}
+                        </div>
+                        <span className="text-xs font-medium text-foreground truncate">
+                          {partner.name}
+                        </span>
+                      </div>
+                      {expandedPartner === index ? (
+                        <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                      )}
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Name</Label>
+                        <Input
+                          value={partner.name}
+                          onChange={(e) => {
+                            const newMembers = [...(team.members || [])];
+                            newMembers[index] = { ...newMembers[index], name: e.target.value };
+                            updateContent("team", { members: newMembers });
+                          }}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Role</Label>
+                        <Input
+                          value={partner.role}
+                          onChange={(e) => {
+                            const newMembers = [...(team.members || [])];
+                            newMembers[index] = { ...newMembers[index], role: e.target.value };
+                            updateContent("team", { members: newMembers });
+                          }}
+                          className="h-7 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Bio</Label>
+                        <Textarea
+                          value={partner.bio}
+                          onChange={(e) => {
+                            const newMembers = [...(team.members || [])];
+                            newMembers[index] = { ...newMembers[index], bio: e.target.value };
+                            updateContent("team", { members: newMembers });
+                          }}
+                          className="text-xs min-h-[50px] mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Photo</Label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={(el) => (partnerFileInputRefs.current[index] = el)}
+                          onChange={(e) => handlePartnerImageUpload(index, e)}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => partnerFileInputRefs.current[index]?.click()}
+                          className="w-full mt-1 h-16 rounded-md border border-dashed border-border/50 flex flex-col items-center justify-center gap-1 hover:bg-muted/30 transition-colors overflow-hidden"
+                        >
+                          {partner.image ? (
+                            <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <Camera className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-[10px] text-muted-foreground">Upload photo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      {/* Add to Project Team button */}
+                      <button
+                        onClick={() => addPartnerToProjectTeam(partner)}
+                        className="w-full h-7 text-[10px] bg-primary/10 text-primary border border-primary/30 rounded hover:bg-primary/20 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        Add to Project Team
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newMembers = team.members?.filter((_, i) => i !== index) || [];
+                          updateContent("team", { members: newMembers });
+                          setExpandedPartner(null);
+                        }}
+                        className="w-full h-7 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Remove Partner
+                      </button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+              
+              {/* Add New Partner */}
+              {showAddPartner ? (
+                <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
+                  <Input
+                    value={newPartner.name}
+                    onChange={(e) => setNewPartner(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Name..."
+                    className="h-7 text-xs"
+                  />
+                  <Input
+                    value={newPartner.role}
+                    onChange={(e) => setNewPartner(prev => ({ ...prev, role: e.target.value }))}
+                    placeholder="Role/Title..."
+                    className="h-7 text-xs"
+                  />
+                  <Textarea
+                    value={newPartner.bio}
+                    onChange={(e) => setNewPartner(prev => ({ ...prev, bio: e.target.value }))}
+                    placeholder="Brief bio..."
+                    className="text-xs min-h-[40px]"
+                  />
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={newPartnerFileInputRef}
+                      onChange={handleNewPartnerImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => newPartnerFileInputRef.current?.click()}
+                      className="w-full h-12 rounded-md border border-dashed border-border/50 flex items-center justify-center gap-2 hover:bg-muted/30 transition-colors overflow-hidden"
+                    >
+                      {newPartner.image ? (
+                        <img src={newPartner.image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <Camera className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">Upload photo</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (newPartner.name.trim()) {
+                          const newMembers = [...(team.members || []), newPartner];
+                          updateContent("team", { members: newMembers });
+                          setNewPartner({ name: '', role: '', bio: '', image: '' });
+                          setShowAddPartner(false);
+                        }
+                      }}
+                      className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewPartner({ name: '', role: '', bio: '', image: '' });
+                        setShowAddPartner(false);
+                      }}
+                      className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddPartner(true)}
+                  className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Partner
                 </button>
               )}
             </div>
