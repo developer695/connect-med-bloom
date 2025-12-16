@@ -14,13 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shared_proposals: {
+        Row: {
+          content: Json
+          created_at: string
+          expires_at: string | null
+          id: string
+          share_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          share_id?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          share_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_share_id: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
