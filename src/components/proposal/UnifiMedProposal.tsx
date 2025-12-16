@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
+import ShareDialog from "./ShareDialog";
 import EditModeToggle from "./EditModeToggle";
 import EditSidebar from "./EditSidebar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
@@ -134,6 +135,7 @@ const UnifiMedProposal = () => {
               <ChevronRight className="w-4 h-4" />
             </Button>
             <ExportDialog />
+            <ShareDialog />
             <EditModeToggle />
           </div>
 
