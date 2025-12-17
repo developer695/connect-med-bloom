@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
+import type { Json } from "@/integrations/supabase/types";
 
 const ShareDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,45 +21,55 @@ const ShareDialog = () => {
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { proposalId } = useProposalContent();
+  const { proposalId, content } = useProposalContent();
 
-  // Fetch the view_token when dialog opens
-  const fetchShareLink = async () => {
-    if (!proposalId) {
-      toast({
-        title: "Error",
-        description: "No proposal selected to share.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const generateShareLink = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("view_token")
-        .eq("id", proposalId)
-        .maybeSingle();
+      let viewToken: string | null = null;
 
-      if (error) throw error;
+      if (proposalId) {
+        // Existing proposal - fetch view_token
+        const { data, error } = await supabase
+          .from("proposals")
+          .select("view_token")
+          .eq("id", proposalId)
+          .maybeSingle();
 
-      if (data?.view_token) {
-        const baseUrl = window.location.origin;
-        const url = `${baseUrl}/proposal/${data.view_token}`;
-        setShareUrl(url);
+        if (error) throw error;
+        viewToken = data?.view_token || null;
       } else {
+        // No existing proposal - create new one with current content
+        const { data, error } = await supabase
+          .from("proposals")
+          .insert({
+            title: content.cover.title || "Untitled Proposal",
+            content: JSON.parse(JSON.stringify(content)) as Json,
+            author: content.letter.signature || null,
+          })
+          .select("view_token")
+          .single();
+
+        if (error) throw error;
+        viewToken = data?.view_token || null;
+      }
+
+      if (viewToken) {
+        const baseUrl = window.location.origin;
+        const url = `${baseUrl}/proposal/${viewToken}`;
+        setShareUrl(url);
         toast({
-          title: "Error",
-          description: "Could not find shareable link for this proposal.",
-          variant: "destructive",
+          title: "Link generated!",
+          description: "Your shareable link is ready.",
         });
+      } else {
+        throw new Error("Could not generate view token");
       }
     } catch (error) {
-      console.error("Error fetching share link:", error);
+      console.error("Error generating share link:", error);
       toast({
         title: "Error",
-        description: "Failed to get shareable link. Please try again.",
+        description: "Failed to generate shareable link. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -86,9 +97,6 @@ const ShareDialog = () => {
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    if (open && proposalId) {
-      fetchShareLink();
-    }
     if (!open) {
       setShareUrl("");
       setCopied(false);
@@ -107,15 +115,25 @@ const ShareDialog = () => {
         <DialogHeader>
           <DialogTitle>Share Proposal</DialogTitle>
           <DialogDescription>
-            Share this link with clients. They will see the latest version of the proposal in view-only mode.
+            Generate a shareable link. Clients will see the latest version in view-only mode.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : shareUrl ? (
+          {!shareUrl ? (
+            <Button onClick={generateShareLink} disabled={isLoading} className="w-full">
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Generate Shareable Link
+                </>
+              )}
+            </Button>
+          ) : (
             <div className="flex gap-2">
               <Input value={shareUrl} readOnly className="flex-1" />
               <Button onClick={copyToClipboard} variant="outline" size="icon">
@@ -126,14 +144,10 @@ const ShareDialog = () => {
                 )}
               </Button>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Unable to load share link.
-            </p>
           )}
           {shareUrl && (
             <p className="text-sm text-muted-foreground">
-              This link always shows the most recent version of the proposal. Any updates you make will be reflected automatically.
+              This link always shows the most recent version of the proposal.
             </p>
           )}
         </div>
