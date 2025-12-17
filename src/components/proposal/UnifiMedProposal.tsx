@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogIn, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
 import EditModeToggle from "./EditModeToggle";
 import EditSidebar from "./EditSidebar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -35,7 +37,9 @@ const pages = [
 ];
 
 const UnifiMedProposal = () => {
-  const { isEditMode } = useProposalContent();
+  const { isEditMode, readOnly } = useProposalContent();
+  const { user, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -57,6 +61,11 @@ const UnifiMedProposal = () => {
       setCurrentPage(currentPage - 1);
     }
   }, [currentPage]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
 
   const CurrentPageComponent = pages[currentPage].component;
 
@@ -107,7 +116,7 @@ const UnifiMedProposal = () => {
         </div>
         
         {/* Edit sidebar - outside the document */}
-        {isEditMode && <EditSidebar />}
+        {isEditMode && !readOnly && <EditSidebar />}
       </div>
 
       {/* Navigation bar */}
@@ -135,8 +144,46 @@ const UnifiMedProposal = () => {
               <ChevronRight className="w-4 h-4" />
             </Button>
             <ExportDialog />
-            <ShareDialog />
-            <EditModeToggle />
+            {!readOnly && <ShareDialog />}
+            {!readOnly && <EditModeToggle />}
+            
+            {/* Auth buttons */}
+            {!readOnly && (
+              <>
+                {user && isAdmin ? (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate("/dashboard")}
+                      className="gap-1 md:gap-2"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span className="hidden md:inline">Dashboard</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSignOut}
+                      className="gap-1 md:gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span className="hidden md:inline">Logout</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate("/auth")}
+                    className="gap-1 md:gap-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span className="hidden md:inline">Login</span>
+                  </Button>
+                )}
+              </>
+            )}
           </div>
 
           {/* Page indicators */}

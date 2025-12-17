@@ -35,6 +35,42 @@ export type Database = {
         }
         Relationships: []
       }
+      proposals: {
+        Row: {
+          author: string | null
+          content: Json
+          created_at: string
+          creator_id: string | null
+          id: string
+          pdf_url: string | null
+          title: string
+          updated_at: string
+          view_token: string | null
+        }
+        Insert: {
+          author?: string | null
+          content?: Json
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          pdf_url?: string | null
+          title: string
+          updated_at?: string
+          view_token?: string | null
+        }
+        Update: {
+          author?: string | null
+          content?: Json
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          pdf_url?: string | null
+          title?: string
+          updated_at?: string
+          view_token?: string | null
+        }
+        Relationships: []
+      }
       shared_proposals: {
         Row: {
           content: Json
