@@ -68,7 +68,7 @@ const Index = () => {
   }
 
   return (
-    <ProposalContentProvider initialContent={proposalContent || undefined}>
+    <ProposalContentProvider initialContent={proposalContent || undefined} proposalId={proposalId}>
       <UnifiMedProposal />
     </ProposalContentProvider>
   );
