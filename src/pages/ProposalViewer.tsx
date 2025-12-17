@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, AlertCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ProposalContent, ProposalContentProvider } from "@/contexts/ProposalContentContext";
+import { exportToPDF } from "@/utils/exportProposal";
 
 import CoverPage from "@/components/proposal/pages/CoverPage";
 import LetterPage from "@/components/proposal/pages/LetterPage";
@@ -35,6 +36,7 @@ const pages = [
 const ProposalViewerContent = ({ content }: { content: ProposalContent }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   const goToPage = useCallback((index: number) => {
     setDirection(index > currentPage ? 1 : -1);
@@ -54,6 +56,17 @@ const ProposalViewerContent = ({ content }: { content: ProposalContent }) => {
       setCurrentPage(currentPage - 1);
     }
   }, [currentPage]);
+
+  const handleDownloadPDF = async () => {
+    setIsExporting(true);
+    try {
+      await exportToPDF(content);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const CurrentPageComponent = pages[currentPage].component;
 
@@ -77,11 +90,21 @@ const ProposalViewerContent = ({ content }: { content: ProposalContent }) => {
   return (
     <ProposalContentProvider initialContent={content} readOnly>
       <div className="w-full min-h-screen bg-background flex flex-col">
-        {/* View-only banner */}
-        <div className="bg-muted border-b border-border px-4 py-2 text-center">
+        {/* View-only banner with download */}
+        <div className="bg-muted border-b border-border px-4 py-2 flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             👁️ View-only mode — This is a shared proposal
           </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPDF}
+            disabled={isExporting}
+            className="gap-2"
+          >
+            <Download className="w-4 h-4" />
+            {isExporting ? 'Exporting...' : 'Download PDF'}
+          </Button>
         </div>
 
         {/* Main content area */}
