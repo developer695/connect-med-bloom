@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, LogIn, LogOut, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogIn, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
@@ -37,7 +37,7 @@ const pages = [
 ];
 
 const UnifiMedProposal = () => {
-  const { isEditMode, readOnly } = useProposalContent();
+  const { isEditMode, readOnly, isLoading } = useProposalContent();
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
@@ -66,6 +66,15 @@ const UnifiMedProposal = () => {
     await signOut();
     navigate("/auth");
   };
+
+  // Show loading state while fetching content from database
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const CurrentPageComponent = pages[currentPage].component;
 

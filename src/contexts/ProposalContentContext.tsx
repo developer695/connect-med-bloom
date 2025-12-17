@@ -490,6 +490,7 @@ interface ProposalContextType {
   deleteProposal: (id: string) => void;
   readOnly: boolean;
   proposalId?: string;
+  isLoading: boolean;
 }
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
@@ -537,144 +538,159 @@ interface ProposalContentProviderProps {
 }
 
 export const ProposalContentProvider = ({ children, initialContent, readOnly = false, proposalId }: ProposalContentProviderProps) => {
-  const [content, setContent] = useState<ProposalContent>(() => {
-    // If initialContent is provided (e.g., for viewer mode), use it directly
-    if (initialContent) {
-      return initialContent;
-    }
-    
-    try {
-      const saved = localStorage.getItem("proposal-content");
-      if (saved) {
-        // Check if data is too large (> 4MB) and clear it
-        if (saved.length > 4 * 1024 * 1024) {
-          console.warn('Proposal content too large, clearing localStorage...');
-          localStorage.removeItem("proposal-content");
-          localStorage.removeItem("saved-proposals");
-          return defaultContent;
-        }
-        
-        const parsed = JSON.parse(saved);
-        // Deep merge with defaults to ensure new properties are included
-        const mergedClients = {
-          ...defaultContent.clients,
-          ...parsed.clients,
-          clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
-            ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
-            : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
-        };
-        
-        // Migrate deliverables to new format
-        const migratedDeliverables = (parsed.proposal?.deliverables || defaultContent.proposal.deliverables)
-          .map(migrateDeliverable);
-        const migratedHiddenDeliverables = (parsed.proposal?.hiddenDeliverables || [])
-          .map(migrateDeliverable);
-        
-        // Get all deliverable titles for package migration
-        const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
-        
-        // Migrate packages to new format
-        const migratedPackages = (parsed.proposal?.packages || defaultContent.proposal.packages)
-          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-        const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
-          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-        
-      return {
-          ...defaultContent,
-          ...parsed,
-          // Always use current dynamic dates
-          cover: { ...defaultContent.cover, ...parsed.cover, date: getCurrentDateFormatted() },
-          letter: { ...defaultContent.letter, ...parsed.letter, date: getCurrentDateFullFormatted() },
-          about: { ...defaultContent.about, ...parsed.about },
-          team: { ...defaultContent.team, ...parsed.team },
-          proposal: { 
-            ...defaultContent.proposal, 
-            ...parsed.proposal,
-            projectTeamTitle: parsed.proposal?.projectTeamTitle || defaultContent.proposal.projectTeamTitle,
-            projectTeam: parsed.proposal?.projectTeam || defaultContent.proposal.projectTeam,
-            deliverables: migratedDeliverables,
-            hiddenDeliverables: migratedHiddenDeliverables,
-            packages: migratedPackages,
-            hiddenPackages: migratedHiddenPackages,
-          },
-          value: { 
-            ...defaultContent.value, 
-            ...parsed.value,
-            hiddenPillars: parsed.value?.hiddenPillars || [],
-            hiddenDifferentiators: parsed.value?.hiddenDifferentiators || [],
-          },
-          contact: { ...defaultContent.contact, ...parsed.contact },
-          clients: mergedClients,
-          shapes: { ...defaultContent.shapes, ...parsed.shapes },
-        };
-      }
-    } catch (error) {
-      console.error("Error loading saved content, resetting to defaults:", error);
-      // Clear corrupted localStorage
-      try {
-        localStorage.removeItem("proposal-content");
-        localStorage.removeItem("saved-proposals");
-      } catch {
-        // Ignore if we can't clear
-      }
-    }
-    return defaultContent;
-  });
+  const [content, setContent] = useState<ProposalContent>(defaultContent);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(!initialContent);
+  const [siteContentId, setSiteContentId] = useState<string | null>(null);
   const isReadOnly = readOnly;
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
 
-  // Auto-save to database when content changes (debounced)
-  const saveToDatabase = useCallback(async (contentToSave: ProposalContent) => {
-    if (!proposalId || isReadOnly) return;
+  // Load content from site_content table on mount
+  useEffect(() => {
+    if (initialContent) {
+      setContent(initialContent);
+      setIsLoading(false);
+      return;
+    }
+
+    const loadSiteContent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_content')
+          .select('id, content')
+          .eq('content_type', 'default')
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error loading site content:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data && data.content) {
+          setSiteContentId(data.id);
+          const loadedContent = data.content as unknown as ProposalContent;
+          
+          // Migrate and merge with defaults
+          const migratedDeliverables = (loadedContent.proposal?.deliverables || defaultContent.proposal.deliverables)
+            .map(migrateDeliverable);
+          const migratedHiddenDeliverables = (loadedContent.proposal?.hiddenDeliverables || [])
+            .map(migrateDeliverable);
+          
+          const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
+          
+          const migratedPackages = (loadedContent.proposal?.packages || defaultContent.proposal.packages)
+            .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
+          const migratedHiddenPackages = (loadedContent.proposal?.hiddenPackages || [])
+            .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
+
+          setContent({
+            ...defaultContent,
+            ...loadedContent,
+            cover: { ...defaultContent.cover, ...loadedContent.cover, date: getCurrentDateFormatted() },
+            letter: { ...defaultContent.letter, ...loadedContent.letter, date: getCurrentDateFullFormatted() },
+            about: { ...defaultContent.about, ...loadedContent.about },
+            team: { ...defaultContent.team, ...loadedContent.team },
+            proposal: {
+              ...defaultContent.proposal,
+              ...loadedContent.proposal,
+              deliverables: migratedDeliverables,
+              hiddenDeliverables: migratedHiddenDeliverables,
+              packages: migratedPackages,
+              hiddenPackages: migratedHiddenPackages,
+            },
+            value: {
+              ...defaultContent.value,
+              ...loadedContent.value,
+              hiddenPillars: loadedContent.value?.hiddenPillars || [],
+              hiddenDifferentiators: loadedContent.value?.hiddenDifferentiators || [],
+            },
+            contact: { ...defaultContent.contact, ...loadedContent.contact },
+            shapes: { ...defaultContent.shapes, ...loadedContent.shapes },
+          });
+        }
+      } catch (err) {
+        console.error('Error loading site content:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSiteContent();
+  }, [initialContent]);
+
+  // Auto-save to site_content table when content changes (debounced)
+  const saveToSiteContent = useCallback(async (contentToSave: ProposalContent) => {
+    if (isReadOnly || initialContent) return;
     
     try {
-      const { error } = await supabase
-        .from('proposals')
-        .update({ 
-          content: JSON.parse(JSON.stringify(contentToSave)),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', proposalId);
-      
-      if (error) {
-        console.error('Error saving to database:', error);
+      if (siteContentId) {
+        // Update existing record
+        const { error } = await supabase
+          .from('site_content')
+          .update({ 
+            content: JSON.parse(JSON.stringify(contentToSave))
+          })
+          .eq('id', siteContentId);
+        
+        if (error) {
+          console.error('Error saving to site_content:', error);
+        } else {
+          console.log('Site content auto-saved');
+        }
       } else {
-        console.log('Proposal auto-saved to database');
+        // Create new record
+        const { data, error } = await supabase
+          .from('site_content')
+          .insert({ 
+            content_type: 'default',
+            content: JSON.parse(JSON.stringify(contentToSave)),
+            is_active: true
+          })
+          .select('id')
+          .single();
+        
+        if (error) {
+          console.error('Error creating site_content:', error);
+        } else if (data) {
+          setSiteContentId(data.id);
+          console.log('Site content created and saved');
+        }
       }
     } catch (err) {
-      console.error('Error saving to database:', err);
+      console.error('Error saving to site_content:', err);
     }
-  }, [proposalId, isReadOnly]);
+  }, [siteContentId, isReadOnly, initialContent]);
 
   // Debounced database save effect
   useEffect(() => {
-    // Skip saving on initial mount
-    if (isInitialMount.current) {
+    // Skip saving on initial mount or if still loading
+    if (isInitialMount.current || isLoading) {
       isInitialMount.current = false;
       return;
     }
 
-    // Only save to database if we have a proposalId and not in read-only mode
-    if (!proposalId || isReadOnly) return;
+    // Skip if read-only or using initialContent (viewer mode)
+    if (isReadOnly || initialContent) return;
 
     // Clear any existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Debounce the save operation (1 second delay)
+    // Debounce the save operation (2 second delay)
     saveTimeoutRef.current = setTimeout(() => {
-      saveToDatabase(content);
-    }, 1000);
+      saveToSiteContent(content);
+    }, 2000);
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [content, proposalId, isReadOnly, saveToDatabase]);
+  }, [content, isReadOnly, initialContent, isLoading, saveToSiteContent]);
 
   // Safe localStorage helper that handles quota errors
   const safeLocalStorageSave = (key: string, value: string): boolean => {
@@ -781,6 +797,7 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
       deleteProposal,
       readOnly: isReadOnly,
       proposalId,
+      isLoading,
     }}>
       {children}
     </ProposalContentContext.Provider>
