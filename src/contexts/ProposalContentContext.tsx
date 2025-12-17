@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 // Helper to get current date formatted
 const getCurrentDateFormatted = () => format(new Date(), "MMMM yyyy");
@@ -531,9 +532,10 @@ interface ProposalContentProviderProps {
   children: ReactNode;
   initialContent?: ProposalContent;
   readOnly?: boolean;
+  proposalId?: string;
 }
 
-export const ProposalContentProvider = ({ children, initialContent, readOnly = false }: ProposalContentProviderProps) => {
+export const ProposalContentProvider = ({ children, initialContent, readOnly = false, proposalId }: ProposalContentProviderProps) => {
   const [content, setContent] = useState<ProposalContent>(() => {
     // If initialContent is provided (e.g., for viewer mode), use it directly
     if (initialContent) {
@@ -619,16 +621,71 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const isReadOnly = readOnly;
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
+
+  // Auto-save to database when content changes (debounced)
+  const saveToDatabase = useCallback(async (contentToSave: ProposalContent) => {
+    if (!proposalId || isReadOnly) return;
+    
+    try {
+      const { error } = await supabase
+        .from('proposals')
+        .update({ 
+          content: JSON.parse(JSON.stringify(contentToSave)),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', proposalId);
+      
+      if (error) {
+        console.error('Error saving to database:', error);
+      } else {
+        console.log('Proposal auto-saved to database');
+      }
+    } catch (err) {
+      console.error('Error saving to database:', err);
+    }
+  }, [proposalId, isReadOnly]);
+
+  // Debounced database save effect
+  useEffect(() => {
+    // Skip saving on initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // Only save to database if we have a proposalId and not in read-only mode
+    if (!proposalId || isReadOnly) return;
+
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce the save operation (1 second delay)
+    saveTimeoutRef.current = setTimeout(() => {
+      saveToDatabase(content);
+    }, 1000);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [content, proposalId, isReadOnly, saveToDatabase]);
 
   // Safe localStorage helper that handles quota errors
   const safeLocalStorageSave = (key: string, value: string): boolean => {
+    // Skip localStorage if we're saving to database
+    if (proposalId) return true;
+    
     try {
       localStorage.setItem(key, value);
       return true;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         console.warn('localStorage quota exceeded, clearing old data...');
-        // Try to clear proposal content and retry
         try {
           localStorage.removeItem('proposal-content');
           localStorage.removeItem('saved-proposals');
