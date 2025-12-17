@@ -489,6 +489,7 @@ interface ProposalContextType {
   getSavedProposals: () => SavedProposal[];
   deleteProposal: (id: string) => void;
   readOnly: boolean;
+  proposalId?: string;
 }
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
@@ -779,6 +780,7 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
       getSavedProposals,
       deleteProposal,
       readOnly: isReadOnly,
+      proposalId,
     }}>
       {children}
     </ProposalContentContext.Provider>
