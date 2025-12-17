@@ -543,6 +543,14 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
     try {
       const saved = localStorage.getItem("proposal-content");
       if (saved) {
+        // Check if data is too large (> 4MB) and clear it
+        if (saved.length > 4 * 1024 * 1024) {
+          console.warn('Proposal content too large, clearing localStorage...');
+          localStorage.removeItem("proposal-content");
+          localStorage.removeItem("saved-proposals");
+          return defaultContent;
+        }
+        
         const parsed = JSON.parse(saved);
         // Deep merge with defaults to ensure new properties are included
         const mergedClients = {
@@ -599,12 +607,42 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
       }
     } catch (error) {
       console.error("Error loading saved content, resetting to defaults:", error);
-      localStorage.removeItem("proposal-content");
+      // Clear corrupted localStorage
+      try {
+        localStorage.removeItem("proposal-content");
+        localStorage.removeItem("saved-proposals");
+      } catch {
+        // Ignore if we can't clear
+      }
     }
     return defaultContent;
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const isReadOnly = readOnly;
+
+  // Safe localStorage helper that handles quota errors
+  const safeLocalStorageSave = (key: string, value: string): boolean => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.warn('localStorage quota exceeded, clearing old data...');
+        // Try to clear proposal content and retry
+        try {
+          localStorage.removeItem('proposal-content');
+          localStorage.removeItem('saved-proposals');
+          localStorage.setItem(key, value);
+          return true;
+        } catch {
+          console.error('Still cannot save after clearing localStorage');
+          return false;
+        }
+      }
+      console.error('Error saving to localStorage:', error);
+      return false;
+    }
+  };
 
   const updateContent = <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => {
     // In read-only mode, don't allow updates
@@ -615,7 +653,7 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
         ...prev,
         [section]: { ...prev[section], ...data },
       };
-      localStorage.setItem("proposal-content", JSON.stringify(newContent));
+      safeLocalStorageSave("proposal-content", JSON.stringify(newContent));
       return newContent;
     });
   };
@@ -637,7 +675,7 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
     };
     
     setContent(newContent);
-    localStorage.setItem("proposal-content", JSON.stringify(newContent));
+    safeLocalStorageSave("proposal-content", JSON.stringify(newContent));
   };
 
   const saveProposal = (name: string, clientName: string) => {
@@ -650,12 +688,12 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
       content,
     };
     savedProposals.push(newProposal);
-    localStorage.setItem("saved-proposals", JSON.stringify(savedProposals));
+    safeLocalStorageSave("saved-proposals", JSON.stringify(savedProposals));
   };
 
   const loadProposal = (proposal: SavedProposal) => {
     setContent(proposal.content);
-    localStorage.setItem("proposal-content", JSON.stringify(proposal.content));
+    safeLocalStorageSave("proposal-content", JSON.stringify(proposal.content));
   };
 
   const getSavedProposals = (): SavedProposal[] => {
@@ -669,7 +707,7 @@ export const ProposalContentProvider = ({ children, initialContent, readOnly = f
 
   const deleteProposal = (id: string) => {
     const savedProposals = getSavedProposals().filter(p => p.id !== id);
-    localStorage.setItem("saved-proposals", JSON.stringify(savedProposals));
+    safeLocalStorageSave("saved-proposals", JSON.stringify(savedProposals));
   };
 
   return (
