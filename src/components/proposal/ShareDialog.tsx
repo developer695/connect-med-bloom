@@ -10,8 +10,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -20,15 +22,39 @@ const ShareDialog = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [proposalTitle, setProposalTitle] = useState("");
   const { toast } = useToast();
   const { content } = useProposalContent();
+  const { user, isAdmin } = useAuth();
 
   const generateShareLink = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can create shareable proposals.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!proposalTitle.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a title for this proposal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase
         .from("shared_proposals")
-        .insert([{ content: JSON.parse(JSON.stringify(content)) as Json }])
+        .insert([{ 
+          content: JSON.parse(JSON.stringify(content)) as Json,
+          title: proposalTitle.trim(),
+          creator_id: user?.id
+        }])
         .select("share_id")
         .single();
 
@@ -77,8 +103,14 @@ const ShareDialog = () => {
     if (!open) {
       setShareUrl("");
       setCopied(false);
+      setProposalTitle("");
     }
   };
+
+  // Don't show share button for non-admins
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -97,19 +129,30 @@ const ShareDialog = () => {
         </DialogHeader>
         <div className="flex flex-col gap-4 py-4">
           {!shareUrl ? (
-            <Button onClick={generateShareLink} disabled={isGenerating} className="w-full">
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Generate Shareable Link
-                </>
-              )}
-            </Button>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="proposal-title">Proposal Title</Label>
+                <Input
+                  id="proposal-title"
+                  placeholder="e.g., Q1 Healthcare Proposal"
+                  value={proposalTitle}
+                  onChange={(e) => setProposalTitle(e.target.value)}
+                />
+              </div>
+              <Button onClick={generateShareLink} disabled={isGenerating} className="w-full">
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Generate Shareable Link
+                  </>
+                )}
+              </Button>
+            </>
           ) : (
             <div className="flex gap-2">
               <Input value={shareUrl} readOnly className="flex-1" />

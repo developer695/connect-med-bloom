@@ -1,12 +1,14 @@
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
 import EditModeToggle from "./EditModeToggle";
 import EditSidebar from "./EditSidebar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -36,6 +38,7 @@ const pages = [
 
 const UnifiMedProposal = () => {
   const { isEditMode } = useProposalContent();
+  const { user, isAdmin } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -136,7 +139,22 @@ const UnifiMedProposal = () => {
             </Button>
             <ExportDialog />
             <ShareDialog />
-            <EditModeToggle />
+            {isAdmin && <EditModeToggle />}
+            {isAdmin ? (
+              <Button variant="ghost" size="sm" asChild className="gap-2">
+                <Link to="/admin">
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden md:inline">Admin</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" asChild className="gap-2">
+                <Link to="/auth">
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden md:inline">Login</span>
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* Page indicators */}
