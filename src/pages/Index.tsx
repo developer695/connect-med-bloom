@@ -23,11 +23,11 @@ const Index = () => {
         return;
       }
       if (!authLoading && user && !isAdmin) {
-        toast({
-          title: "Access Denied",
-          description: "Only administrators can edit proposals.",
-          variant: "destructive",
-        });
+        // toast({
+        //   title: "Access Denied",
+        //   description: "Only administrators can edit proposals.",
+        //   variant: "destructive",
+        // });
         navigate("/auth");
         return;
       }
