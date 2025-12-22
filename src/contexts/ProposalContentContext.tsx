@@ -392,7 +392,7 @@ const ProposalContentContext = createContext<ProposalContextType | undefined>(un
 interface ProposalContentProviderProps {
   children: ReactNode;
   initialContent?: ProposalContent;
-  readOnly?: boolean;
+  readOnly?: boolean ;
   proposalId?: string;
 }
 
@@ -447,7 +447,7 @@ export const ProposalContentProvider = ({
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       const loadTime = Date.now() - startTime;
       console.log(`⏱️ Load time: ${loadTime}ms`);
 
@@ -457,7 +457,7 @@ export const ProposalContentProvider = ({
       }
 
       if (data) {
-        // ✅ Reconstruct content from individual columns
+    
         const siteContent: ProposalContent = {
           cover: data.cover || fallbackContent.cover,
           letter: data.letter || fallbackContent.letter,
@@ -554,23 +554,27 @@ export const ProposalContentProvider = ({
     [autoSaveEnabled, readOnly]
   );
 
-  const updateContent = useCallback(<K extends keyof ProposalContent>(
+const updateContent = useCallback(<K extends keyof ProposalContent>(
     section: K,
     data: Partial<ProposalContent[K]>
   ) => {
-    if (readOnly) return;
+    console.log('🔥 UPDATECONTENT ENTERED!', { section, data, readOnly });
+    
+    if (readOnly) {
+      console.log('❌ BLOCKED: readOnly is true!');
+      return;
+    }
 
+    console.log('✅ PASSED readOnly check, updating state...');
+    console.log('section ,', section, data);
+    
     setContent(prev => {
+      console.log('🔥 setContent executing...');
       const newContent = {
         ...prev,
         [section]: { ...prev[section], ...data },
       };
-
-      if (currentProposalUuid && autoSaveEnabled) {
-        autoSaveToDatabase(newContent, currentProposalUuid, currentProposalVersion);
-        setSaveStatus('idle');
-      }
-
+      console.log('✅ New content created:', newContent[section]);
       return newContent;
     });
   }, [readOnly, currentProposalUuid, currentProposalVersion, autoSaveEnabled, autoSaveToDatabase]);

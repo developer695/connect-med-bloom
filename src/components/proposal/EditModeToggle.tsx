@@ -12,30 +12,36 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 const EditModeToggle = () => {
-  const { isEditMode, setIsEditMode, resetContent } = useProposalContent();
-
+  const { isEditMode, setIsEditMode} = useProposalContent();
+   const { user, isAdmin } = useAuth();
+  if (!user || !isAdmin) {
+    console.log('✅ Hiding EditModeToggle - Not authenticated or not admin');
+    return null;
+  }
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant={isEditMode ? "default" : "outline"}
-        size="sm"
-        onClick={() => setIsEditMode(!isEditMode)}
-        className="gap-2"
-      >
-        {isEditMode ? (
-          <>
-            <Eye className="w-4 h-4" />
-            <span className="hidden md:inline">Preview</span>
-          </>
-        ) : (
-          <>
-            <Pencil className="w-4 h-4" />
-            <span className="hidden md:inline">Edit</span>
-          </>
-        )}
-      </Button>
+         <Button
+      variant={isEditMode ? "default" : "outline"}
+      size="sm"
+      onClick={() => setIsEditMode(!isEditMode)}
+      className="gap-2"
+    >
+      {isEditMode ? (
+        <>
+          <Eye className="w-4 h-4" />
+          <span className="hidden md:inline">Preview</span>
+        </>
+      ) : (
+        <>
+          <Pencil className="w-4 h-4" />
+          <span className="hidden md:inline">Edit</span>
+        </>
+      )}
+    </Button>
+
 
       {isEditMode && (
         <AlertDialog>
@@ -51,9 +57,9 @@ const EditModeToggle = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={resetContent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {/* <AlertDialogAction onClick={resetContent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 Reset
-              </AlertDialogAction>
+              </AlertDialogAction> */}
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

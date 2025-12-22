@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const EditSidebar = () => {
   const {
@@ -18,6 +19,7 @@ const EditSidebar = () => {
     isEditMode,
     resetContent,
     currentProposalUuid,
+
     setCurrentProposalUuid,
     currentProposalVersion,
     setCurrentProposalVersion,
@@ -58,6 +60,7 @@ const EditSidebar = () => {
   // ✅ Load proposal
   const loadSingleProposal = async () => {
     setIsLoading(true);
+    // setAutoSaveEnabled(false);
     try {
       const { data, error } = await supabase
         .from("site_content")
@@ -103,138 +106,151 @@ const EditSidebar = () => {
   };
 
   // ✅ MANUAL SAVE ONLY - No Auto-Save
- const handleSaveProposal = async () => {
-  if (!saveFormData.author.trim()) {
-    alert('Please enter author name');
-    return;
-  }
-
-  setIsSaving(true);
-  try {
-    const currentContent = getContent();
-    console.log('💾 Saving content to database...');
-
-    // ✅ Check for existing proposal
-    const { data: existing, error: checkError } = await supabase
-      .from("site_content")
-      .select("id, version")
-      .eq("content_type", "proposal")
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    console.log('📊 Existing proposal:', existing);
-
-    if (checkError) {
-      console.error('❌ Error checking existing proposal:', checkError);
-      alert(`Error: ${checkError.message}`);
+  const handleSaveProposal = async () => {
+    if (!saveFormData.author.trim()) {
+      alert('Please enter author name');
       return;
     }
 
-    if (existing) {
-      console.log('📝 Updating proposal ID:', existing.id, 'Current version:', existing.version);
-      const newVersion = existing.version + 1;
+    const currentContent = getContent();
 
-      // ✅ UPDATE - Return data to verify it worked
-      const { data: updateResult, error: updateError } = await supabase
+    console.log('🔍 === SAVE DEBUG START ===');
+    console.log('📊 From getContent():', currentContent);
+    console.log('📊 From context.content:', content);
+    console.log('📊 Are they equal?', currentContent === content);
+    console.log('📊 Cover from getContent():', currentContent.cover);
+    console.log('📊 Cover from content:', content.cover);
+    console.log('📊 Proposal from getContent():', currentContent.proposal);
+    console.log('📊 Proposal from content:', content.proposal);
+    console.log('🔍 === SAVE DEBUG END ===');
+
+    setIsSaving(true);
+    try {
+      const currentContent = getContent();
+      console.log('💾 Saving content to database...', currentContent);
+
+      // ✅ Check for existing proposal
+      const { data: existing, error: checkError } = await supabase
         .from("site_content")
-        .update({
-          cover: currentContent.cover,
-          letter: currentContent.letter,
-          about: currentContent.about,
-          how_we_work: currentContent.howWeWork,
-          solutions: currentContent.solutions,
-          markets: currentContent.markets,
-          clients: currentContent.clients,
-          team: currentContent.team,
-          proposal: currentContent.proposal,
-          value: currentContent.value,
-          contact: currentContent.contact,
-          shapes: currentContent.shapes,
-          author: saveFormData.author.trim(),
-          version: newVersion,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", existing.id)
-        .select('id, version, updated_at'); // ✅ Return specific fields to verify
+        .select("*")
+        .eq("content_type", "proposal")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      console.log('📤 Update result:', { data: updateResult, error: updateError });
+      console.log('📊 Existing proposal:', existing);
 
-      if (updateError) {
-        console.error('❌ Failed to update:', updateError);
-        alert(`Failed to update: ${updateError.message}`);
+      if (checkError) {
+        console.error('❌ Error checking existing proposal:', checkError);
+        alert(`Error: ${checkError.message}`);
         return;
       }
 
-      // ✅ Verify data was returned
-      if (!updateResult || updateResult.length === 0) {
-        console.error('⚠️ Update returned no data - RLS may be blocking');
-        alert('Warning: Update may have failed due to permissions. Please refresh and check if changes saved.');
-        return;
+      if (existing) {
+        console.log('📝 Updating proposal ID:', existing.id, 'Current version:', existing.version);
+        const newVersion = existing.version + 1;
+
+
+        // ✅ UPDATE - Return data to verify it worked
+        const { data: updateResult, error: updateError } = await supabase
+          .from("site_content")
+          .update({
+            cover: currentContent.cover,
+            letter: currentContent.letter,
+            about: currentContent.about,
+            how_we_work: currentContent.howWeWork,
+            solutions: currentContent.solutions,
+            markets: currentContent.markets,
+            clients: currentContent.clients,
+            team: currentContent.team,
+            proposal: currentContent.proposal,
+            value: currentContent.value,
+            contact: currentContent.contact,
+            shapes: currentContent.shapes,
+            author: saveFormData.author.trim(),
+            version: newVersion,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existing.id)
+          .select('id, version, updated_at');
+
+        console.log('📤 Update result:', { data: updateResult, error: updateError });
+
+        if (updateError) {
+          console.error('❌ Failed to update:', updateError);
+          alert(`Failed to update: ${updateError.message}`);
+          return;
+        }
+
+        // ✅ Verify data was returned
+        if (!updateResult || updateResult.length === 0) {
+          console.error('⚠️ Update returned no data - RLS may be blocking');
+          alert('Warning: Update may have failed due to permissions. Please refresh and check if changes saved.');
+          return;
+        }
+
+        console.log('✅ Update successful! New data:', updateResult[0]);
+
+        setCurrentProposalUuid(existing.id);
+        setCurrentProposalVersion(newVersion);
+
+        // ✅ Force reload to verify changes
+        // await loadSingleProposal();
+
+        toast.success(`Proposal updated successfully! (Version ${newVersion})`);
+
+      } else {
+        console.log('📝 Creating new proposal...');
+        const viewToken = crypto.randomUUID();
+
+        const { data: insertData, error: insertError } = await supabase
+          .from("site_content")
+          .insert({
+            content_type: "proposal",
+            cover: currentContent.cover,
+            letter: currentContent.letter,
+            about: currentContent.about,
+            how_we_work: currentContent.howWeWork,
+            solutions: currentContent.solutions,
+            markets: currentContent.markets,
+            clients: currentContent.clients,
+            team: currentContent.team,
+            proposal: currentContent.proposal,
+            value: currentContent.value,
+            contact: currentContent.contact,
+            shapes: currentContent.shapes,
+            author: saveFormData.author.trim(),
+            is_active: true,
+            view_token: viewToken,
+            version: 1
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('❌ Failed to insert:', insertError);
+          alert(`Failed to save: ${insertError.message}`);
+          return;
+        }
+
+        console.log('✅ Insert successful:', insertData);
+
+        if (insertData) {
+          setCurrentProposalUuid(insertData.id);
+          setCurrentProposalVersion(insertData.version);
+          alert('Proposal saved successfully!');
+        }
       }
 
-      console.log('✅ Update successful! New data:', updateResult[0]);
-      
-      setCurrentProposalUuid(existing.id);
-      setCurrentProposalVersion(newVersion);
-      
-      // ✅ Force reload to verify changes
-      await loadSingleProposal();
-      
-      alert(`Proposal updated successfully! (Version ${newVersion})`);
-      
-    } else {
-      console.log('📝 Creating new proposal...');
-      const viewToken = crypto.randomUUID();
-
-      const { data: insertData, error: insertError } = await supabase
-        .from("site_content")
-        .insert({
-          content_type: "proposal",
-          cover: currentContent.cover,
-          letter: currentContent.letter,
-          about: currentContent.about,
-          how_we_work: currentContent.howWeWork,
-          solutions: currentContent.solutions,
-          markets: currentContent.markets,
-          clients: currentContent.clients,
-          team: currentContent.team,
-          proposal: currentContent.proposal,
-          value: currentContent.value,
-          contact: currentContent.contact,
-          shapes: currentContent.shapes,
-          author: saveFormData.author.trim(),
-          is_active: true,
-          view_token: viewToken,
-          version: 1
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('❌ Failed to insert:', insertError);
-        alert(`Failed to save: ${insertError.message}`);
-        return;
-      }
-
-      console.log('✅ Insert successful:', insertData);
-
-      if (insertData) {
-        setCurrentProposalUuid(insertData.id);
-        setCurrentProposalVersion(insertData.version);
-        alert('Proposal saved successfully!');
-      }
+      setShowSaveDialog(false);
+    } catch (error) {
+      console.error('❌ Error saving proposal:', error);
+      alert('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSaving(false);
     }
-
-    setShowSaveDialog(false);
-  } catch (error) {
-    console.error('❌ Error saving proposal:', error);
-    alert('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
 
   useEffect(() => {
     loadSingleProposal();
@@ -495,7 +511,7 @@ const EditSidebar = () => {
         </div>
       )}
 
-  
+
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">

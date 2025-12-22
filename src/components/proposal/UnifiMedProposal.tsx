@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, LogIn, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogIn, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
@@ -124,8 +124,8 @@ const UnifiMedProposal = () => {
           </div>
         </div>
         
-        {/* Edit sidebar - outside the document */}
-        {isEditMode && !readOnly && <EditSidebar />}
+        {/* ✅ Edit sidebar - only for authenticated admins */}
+        {isEditMode && !readOnly && user && isAdmin && <EditSidebar />}
       </div>
 
       {/* Navigation bar */}
@@ -133,6 +133,7 @@ const UnifiMedProposal = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Previous/Next buttons */}
           <div className="flex items-center gap-2 md:gap-4">
+            {/* ✅ Always show Previous/Next buttons for everyone */}
             <Button
               variant="outline"
               size="sm"
@@ -152,38 +153,37 @@ const UnifiMedProposal = () => {
               <span className="hidden md:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <ExportDialog />
-            {!readOnly && <ShareDialog />}
-            {!readOnly && <EditModeToggle />}
             
-            {/* Auth buttons */}
-            {!readOnly && (
+            {/* ✅ Only show these for authenticated admins (NOT public users) */}
+            {!readOnly && user && isAdmin && (
               <>
-                {user && isAdmin ? (
-                  <div className="flex items-center gap-2">
+                <ExportDialog />
+                <ShareDialog />
+                <EditModeToggle />
                 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSignOut}
-                      className="gap-1 md:gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden md:inline">Logout</span>
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate("/auth")}
-                    className="gap-1 md:gap-2"
-                  >
-                    <LogIn className="w-4 h-4" />
-                    <span className="hidden md:inline">Login</span>
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="gap-1 md:gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden md:inline">Logout</span>
+                </Button>
               </>
+            )}
+            
+            {/* ✅ Show Login button only if NOT public and NOT authenticated */}
+            {!readOnly && !user && isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/auth")}
+                className="gap-1 md:gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span className="hidden md:inline">Login</span>
+              </Button>
             )}
           </div>
 
@@ -222,3 +222,42 @@ const UnifiMedProposal = () => {
 };
 
 export default UnifiMedProposal;
+// ```
+
+// ## Key Changes:
+
+// ### For **Public Users** (`readOnly={true}`, no auth):
+// ```
+// ✅ Previous button
+// ✅ Next button
+// ✅ Page indicators (dots)
+// ✅ Page counter (1 / 11)
+// ❌ Export button - HIDDEN
+// ❌ Share button - HIDDEN
+// ❌ Edit toggle - HIDDEN
+// ❌ Login button - HIDDEN
+// ❌ Logout button - HIDDEN
+// ❌ Edit sidebar - HIDDEN
+// ```
+
+// ### For **Authenticated Admins** (`readOnly={false}`, `user && isAdmin`):
+// ```
+// ✅ Previous button
+// ✅ Next button
+// ✅ Page indicators
+// ✅ Page counter
+// ✅ Export button
+// ✅ Share button
+// ✅ Edit toggle
+// ✅ Logout button
+// ✅ Edit sidebar (when edit mode is on)
+// ```
+
+// ### For **Non-authenticated users on edit route** (`readOnly={false}`, no user):
+// ```
+// ✅ Previous button
+// ✅ Next button
+// ✅ Page indicators
+// ✅ Page counter
+// ✅ Login button
+// ❌ Everything else - HIDDEN

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus, Loader2 } from "lucide-react";
 import logoBlack from "@/assets/unifimed-logo-black.png";
+import {toast}  from "react-toastify"
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,21 +17,18 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      if (isAdmin) {
-        navigate("/");
-      } else {
-        toast({
-          title: "Access Denied",
-          description: "Only administrators can access this system.",
-          variant: "destructive",
-        });
-      }
+ 
+useEffect(() => {
+  if (!isLoading && user) {
+    if (isAdmin) {
+      toast.success("Successfully authenticated!");
+      navigate("/");
+    } else {
+      toast.error("Access Denied: Only administrators can access this system.");
     }
-  }, [user, isAdmin, isLoading, navigate, toast]);
+  }
+}, [user, isAdmin, isLoading, navigate]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +39,7 @@ const Auth = () => {
         const { error } = await signIn(email, password);
         if (error) {
           toast({
-            title: "Login Failed",
+            title   : "Login Failed",
             description: error.message,
             variant: "destructive",
           });
@@ -130,10 +128,10 @@ const Auth = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-              {isLogin
+               {/* {isLogin
                 ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
-            </button>
+                : "Already have an account? Sign in"} */}
+            </button> 
           </div>
         </CardContent>
       </Card>
