@@ -155,7 +155,6 @@ const ProposalPage = () => {
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-foreground">{member.name}</h4>
                     <p className="text-sm text-primary">{member.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{member.bio}</p>
                   </div>
                 </div>
               ))}
