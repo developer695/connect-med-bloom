@@ -24,7 +24,7 @@ useEffect(() => {
       toast.success("Successfully authenticated!");
       navigate("/");
     } else {
-      toast.error("Access Denied: Only administrators can access this system.");
+      // toast.error("Access Denied: Only administrators can access this system.");
     }
   }
 }, [user, isAdmin, isLoading, navigate]);
