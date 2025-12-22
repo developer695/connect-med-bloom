@@ -152,15 +152,7 @@ const UnifiMedProposal = () => {
               <>
                 {user && isAdmin ? (
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate("/dashboard")}
-                      className="gap-1 md:gap-2"
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span className="hidden md:inline">Dashboard</span>
-                    </Button>
+                
                     <Button
                       variant="outline"
                       size="sm"

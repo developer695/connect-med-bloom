@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
+// import Dashboard from "./pages/Dashboard";
 import PublicProposal from "./pages/PublicProposal";
 import ProposalViewer from "./pages/ProposalViewer";
 import NotFound from "./pages/NotFound";
@@ -23,7 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* <Route path="/dashboard" element={<Dashboard />} /> */}
             <Route path="/proposal/:viewToken" element={<PublicProposal />} />
             <Route path="/view/:shareId" element={<ProposalViewer />} />
             <Route path="/edit/:proposalId" element={<Index />} />

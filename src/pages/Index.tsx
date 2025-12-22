@@ -41,7 +41,7 @@ const Index = () => {
     if (!proposalId) return;
     
     const { data, error } = await supabase
-      .from("proposals")
+      .from("site_content")
       .select("content")
       .eq("id", proposalId)
       .maybeSingle();
@@ -52,7 +52,7 @@ const Index = () => {
         description: "Failed to load proposal",
         variant: "destructive",
       });
-      navigate("/dashboard");
+      navigate("/d");
     } else {
       setProposalContent(data.content);
     }
@@ -68,7 +68,7 @@ const Index = () => {
   }
 
   return (
-    <ProposalContentProvider initialContent={proposalContent || undefined} proposalId={proposalId}>
+    <ProposalContentProvider initialContent={proposalContent || undefined} proposalId={proposalId} readOnly>
       <UnifiMedProposal />
     </ProposalContentProvider>
   );

@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FolderOpen, FilePlus, Archive, UserPlus } from "lucide-react";
-import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable, SavedProposal } from "@/contexts/ProposalContentContext";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FilePlus, Archive, UserPlus } from "lucide-react";
+import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
 
 const EditSidebar = () => {
-  const { content, updateContent, isEditMode, resetContent, saveProposal, loadProposal, getSavedProposals, deleteProposal } = useProposalContent();
+  const {
+    content,
+    updateContent,
+    isEditMode,
+    resetContent,
+    currentProposalUuid,
+    setCurrentProposalUuid,
+    currentProposalVersion,
+    setCurrentProposalVersion,
+    getContent
+  } = useProposalContent();
+
   const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
   const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
   const [expandedTeamMember, setExpandedTeamMember] = useState<number | null>(null);
@@ -30,17 +42,210 @@ const EditSidebar = () => {
   });
   const [newDeliverableSubInput, setNewDeliverableSubInput] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showLoadDialog, setShowLoadDialog] = useState(false);
-  const [saveFormData, setSaveFormData] = useState({ name: '', clientName: '' });
-  const [savedProposals, setSavedProposals] = useState<SavedProposal[]>([]);
+  const [saveFormData, setSaveFormData] = useState({ author: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const teamFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newTeamFileInputRef = useRef<HTMLInputElement | null>(null);
-  // Partners (team.members) state
+
   const [expandedPartner, setExpandedPartner] = useState<number | null>(null);
   const [showAddPartner, setShowAddPartner] = useState(false);
   const [newPartner, setNewPartner] = useState({ name: '', role: '', bio: '', image: '' });
   const partnerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newPartnerFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ✅ Load proposal
+  const loadSingleProposal = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("site_content")
+        .select("*")
+        .eq("content_type", "proposal")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error loading proposal:', error);
+        return;
+      }
+
+      if (data) {
+        if (data.cover) updateContent("cover", data.cover);
+        if (data.letter) updateContent("letter", data.letter);
+        if (data.about) updateContent("about", data.about);
+        if (data.how_we_work) updateContent("howWeWork", data.how_we_work);
+        if (data.solutions) updateContent("solutions", data.solutions);
+        if (data.markets) updateContent("markets", data.markets);
+        if (data.clients) updateContent("clients", data.clients);
+        if (data.team) updateContent("team", data.team);
+        if (data.proposal) updateContent("proposal", data.proposal);
+        if (data.value) updateContent("value", data.value);
+        if (data.contact) updateContent("contact", data.contact);
+        if (data.shapes) updateContent("shapes", data.shapes);
+
+        setCurrentProposalUuid(data.id);
+        setCurrentProposalVersion(data.version);
+        setSaveFormData({ author: data.author || '' });
+
+        console.log('✅ Proposal loaded!', data);
+      } else {
+        console.log('📝 No existing proposal found. Will create on first save.');
+      }
+    } catch (error) {
+      console.error('❌ Error loading proposal:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ MANUAL SAVE ONLY - No Auto-Save
+ const handleSaveProposal = async () => {
+  if (!saveFormData.author.trim()) {
+    alert('Please enter author name');
+    return;
+  }
+
+  setIsSaving(true);
+  try {
+    const currentContent = getContent();
+    console.log('💾 Saving content to database...');
+
+    // ✅ Check for existing proposal
+    const { data: existing, error: checkError } = await supabase
+      .from("site_content")
+      .select("id, version")
+      .eq("content_type", "proposal")
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    console.log('📊 Existing proposal:', existing);
+
+    if (checkError) {
+      console.error('❌ Error checking existing proposal:', checkError);
+      alert(`Error: ${checkError.message}`);
+      return;
+    }
+
+    if (existing) {
+      console.log('📝 Updating proposal ID:', existing.id, 'Current version:', existing.version);
+      const newVersion = existing.version + 1;
+
+      // ✅ UPDATE - Return data to verify it worked
+      const { data: updateResult, error: updateError } = await supabase
+        .from("site_content")
+        .update({
+          cover: currentContent.cover,
+          letter: currentContent.letter,
+          about: currentContent.about,
+          how_we_work: currentContent.howWeWork,
+          solutions: currentContent.solutions,
+          markets: currentContent.markets,
+          clients: currentContent.clients,
+          team: currentContent.team,
+          proposal: currentContent.proposal,
+          value: currentContent.value,
+          contact: currentContent.contact,
+          shapes: currentContent.shapes,
+          author: saveFormData.author.trim(),
+          version: newVersion,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existing.id)
+        .select('id, version, updated_at'); // ✅ Return specific fields to verify
+
+      console.log('📤 Update result:', { data: updateResult, error: updateError });
+
+      if (updateError) {
+        console.error('❌ Failed to update:', updateError);
+        alert(`Failed to update: ${updateError.message}`);
+        return;
+      }
+
+      // ✅ Verify data was returned
+      if (!updateResult || updateResult.length === 0) {
+        console.error('⚠️ Update returned no data - RLS may be blocking');
+        alert('Warning: Update may have failed due to permissions. Please refresh and check if changes saved.');
+        return;
+      }
+
+      console.log('✅ Update successful! New data:', updateResult[0]);
+      
+      setCurrentProposalUuid(existing.id);
+      setCurrentProposalVersion(newVersion);
+      
+      // ✅ Force reload to verify changes
+      await loadSingleProposal();
+      
+      alert(`Proposal updated successfully! (Version ${newVersion})`);
+      
+    } else {
+      console.log('📝 Creating new proposal...');
+      const viewToken = crypto.randomUUID();
+
+      const { data: insertData, error: insertError } = await supabase
+        .from("site_content")
+        .insert({
+          content_type: "proposal",
+          cover: currentContent.cover,
+          letter: currentContent.letter,
+          about: currentContent.about,
+          how_we_work: currentContent.howWeWork,
+          solutions: currentContent.solutions,
+          markets: currentContent.markets,
+          clients: currentContent.clients,
+          team: currentContent.team,
+          proposal: currentContent.proposal,
+          value: currentContent.value,
+          contact: currentContent.contact,
+          shapes: currentContent.shapes,
+          author: saveFormData.author.trim(),
+          is_active: true,
+          view_token: viewToken,
+          version: 1
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('❌ Failed to insert:', insertError);
+        alert(`Failed to save: ${insertError.message}`);
+        return;
+      }
+
+      console.log('✅ Insert successful:', insertData);
+
+      if (insertData) {
+        setCurrentProposalUuid(insertData.id);
+        setCurrentProposalVersion(insertData.version);
+        alert('Proposal saved successfully!');
+      }
+    }
+
+    setShowSaveDialog(false);
+  } catch (error) {
+    console.error('❌ Error saving proposal:', error);
+    alert('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  useEffect(() => {
+    loadSingleProposal();
+  }, []);
+
+  const handleNewProposal = () => {
+    if (confirm('Reset proposal content? This will clear all data.')) {
+      resetContent();
+      setSaveFormData({ author: '' });
+    }
+  };
 
   const handleTeamImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -144,13 +349,13 @@ const EditSidebar = () => {
   const toggleSubDeliverable = (deliverableIndex: number, subIndex: number) => {
     const newDeliverables = [...proposal.deliverables];
     const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables];
-    newSubDeliverables[subIndex] = { 
-      ...newSubDeliverables[subIndex], 
-      included: !newSubDeliverables[subIndex].included 
+    newSubDeliverables[subIndex] = {
+      ...newSubDeliverables[subIndex],
+      included: !newSubDeliverables[subIndex].included
     };
-    newDeliverables[deliverableIndex] = { 
-      ...newDeliverables[deliverableIndex], 
-      subDeliverables: newSubDeliverables 
+    newDeliverables[deliverableIndex] = {
+      ...newDeliverables[deliverableIndex],
+      subDeliverables: newSubDeliverables
     };
     updateContent("proposal", { deliverables: newDeliverables });
   };
@@ -158,9 +363,9 @@ const EditSidebar = () => {
   const addSubDeliverable = (deliverableIndex: number, name: string) => {
     const newDeliverables = [...proposal.deliverables];
     const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables, { name, included: true }];
-    newDeliverables[deliverableIndex] = { 
-      ...newDeliverables[deliverableIndex], 
-      subDeliverables: newSubDeliverables 
+    newDeliverables[deliverableIndex] = {
+      ...newDeliverables[deliverableIndex],
+      subDeliverables: newSubDeliverables
     };
     updateContent("proposal", { deliverables: newDeliverables });
   };
@@ -179,9 +384,9 @@ const EditSidebar = () => {
 
   const togglePackageAutoCalculate = (index: number) => {
     const newPackages = [...proposal.packages];
-    newPackages[index] = { 
-      ...newPackages[index], 
-      autoCalculate: !newPackages[index].autoCalculate 
+    newPackages[index] = {
+      ...newPackages[index],
+      autoCalculate: !newPackages[index].autoCalculate
     };
     updateContent("proposal", { packages: newPackages });
   };
@@ -210,7 +415,7 @@ const EditSidebar = () => {
     updateContent("value", { differentiators: newDiffs, hiddenDifferentiators: newHidden } as any);
   };
 
-  const hasHiddenItems = 
+  const hasHiddenItems =
     (proposal.hiddenDeliverables?.length || 0) > 0 ||
     (proposal.hiddenPackages?.length || 0) > 0 ||
     (value.hiddenPillars?.length || 0) > 0 ||
@@ -220,80 +425,68 @@ const EditSidebar = () => {
     <div className="w-72 bg-muted/50 border-l border-border flex flex-col h-full">
       <div className="p-3 border-b border-border bg-background">
         <h3 className="font-semibold text-sm text-foreground">Proposal Settings</h3>
-        <p className="text-xs text-muted-foreground mt-1">Configure deliverables and pricing</p>
-        
-        {/* Proposal Management Buttons */}
+        <p className="text-xs text-muted-foreground mt-1">
+          {currentProposalUuid
+            ? `Editing • Version ${currentProposalVersion}`
+            : 'Configure deliverables and pricing'}
+        </p>
+
         <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
-              setSaveFormData({ name: '', clientName: '' });
-              setShowSaveDialog(true);
-            }}
-            className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
-          >
-            <Save className="w-3 h-3" />
-            Save
-          </button>
-          <button
-            onClick={() => {
-              setSavedProposals(getSavedProposals());
-              setShowLoadDialog(true);
-            }}
-            className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
-          >
-            <FolderOpen className="w-3 h-3" />
-            Load
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('Start a new proposal? Current unsaved changes will be lost.')) {
-                resetContent();
+              if (!saveFormData.author && !currentProposalUuid) {
+                setShowSaveDialog(true);
+              } else {
+                handleSaveProposal();
               }
             }}
+            disabled={isSaving}
+            className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Save className="w-3 h-3" />
+            {isSaving ? 'Saving...' : currentProposalUuid ? 'Update' : 'Save'}
+          </button>
+          <button
+            onClick={handleNewProposal}
             className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
           >
             <FilePlus className="w-3 h-3" />
-            New
+            Reset
           </button>
         </div>
       </div>
 
-      {/* Save Dialog */}
       {showSaveDialog && (
         <div className="p-3 border-b border-border bg-primary/5">
           <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
             <Archive className="w-3 h-3" />
-            Save Proposal
+            {currentProposalUuid ? 'Update Proposal' : 'Save Proposal'}
           </h4>
           <div className="space-y-2">
             <Input
-              value={saveFormData.name}
-              onChange={(e) => setSaveFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Proposal name..."
+              value={saveFormData.author}
+              onChange={(e) => setSaveFormData(prev => ({ ...prev, author: e.target.value }))}
+              placeholder="Author name..."
               className="h-7 text-xs"
+              disabled={isSaving}
             />
-            <Input
-              value={saveFormData.clientName}
-              onChange={(e) => setSaveFormData(prev => ({ ...prev, clientName: e.target.value }))}
-              placeholder="Client name..."
-              className="h-7 text-xs"
-            />
+            {currentProposalUuid && (
+              <p className="text-[10px] text-muted-foreground">
+                Version {currentProposalVersion} → {currentProposalVersion + 1}
+              </p>
+            )}
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  if (saveFormData.name.trim()) {
-                    saveProposal(saveFormData.name.trim(), saveFormData.clientName.trim());
-                    setShowSaveDialog(false);
-                    setSaveFormData({ name: '', clientName: '' });
-                  }
-                }}
-                className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                onClick={handleSaveProposal}
+                disabled={isSaving}
+                className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save
+                {isSaving ? 'Saving...' : currentProposalUuid ? 'Update' : 'Save'}
               </button>
               <button
                 onClick={() => setShowSaveDialog(false)}
-                className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+                disabled={isSaving}
+                className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -302,68 +495,8 @@ const EditSidebar = () => {
         </div>
       )}
 
-      {/* Load Dialog */}
-      {showLoadDialog && (
-        <div className="p-3 border-b border-border bg-muted/30 max-h-64 overflow-y-auto">
-          <h4 className="text-xs font-semibold mb-2 flex items-center justify-between">
-            <span className="flex items-center gap-1">
-              <FolderOpen className="w-3 h-3" />
-              Saved Proposals
-            </span>
-            <button
-              onClick={() => setShowLoadDialog(false)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              ✕
-            </button>
-          </h4>
-          {savedProposals.length === 0 ? (
-            <p className="text-[10px] text-muted-foreground py-2">No saved proposals yet.</p>
-          ) : (
-            <div className="space-y-1">
-              {savedProposals.map((proposal) => (
-                <div
-                  key={proposal.id}
-                  className="p-2 rounded bg-background border border-border/50 hover:border-primary/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{proposal.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{proposal.clientName || 'No client'}</p>
-                      <p className="text-[10px] text-muted-foreground/70">
-                        {new Date(proposal.savedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          loadProposal(proposal);
-                          setShowLoadDialog(false);
-                        }}
-                        className="h-6 px-2 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-                      >
-                        Load
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Delete this saved proposal?')) {
-                            deleteProposal(proposal.id);
-                            setSavedProposals(getSavedProposals());
-                          }
-                        }}
-                        className="h-6 px-1.5 text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      
+  
+
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
           {/* Project Team Section */}
@@ -472,8 +605,7 @@ const EditSidebar = () => {
                   </CollapsibleContent>
                 </Collapsible>
               ))}
-              
-              {/* Add New Team Member */}
+
               {showAddTeamMember ? (
                 <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
                   <Input
@@ -553,7 +685,7 @@ const EditSidebar = () => {
             </div>
           </div>
 
-          {/* Partners Section (team.members from page 9) */}
+          {/* Partners Section */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -648,7 +780,6 @@ const EditSidebar = () => {
                           )}
                         </button>
                       </div>
-                      {/* Add to Project Team button */}
                       <button
                         onClick={() => addPartnerToProjectTeam(partner)}
                         className="w-full h-7 text-[10px] bg-primary/10 text-primary border border-primary/30 rounded hover:bg-primary/20 transition-colors flex items-center justify-center gap-1"
@@ -671,8 +802,7 @@ const EditSidebar = () => {
                   </CollapsibleContent>
                 </Collapsible>
               ))}
-              
-              {/* Add New Partner */}
+
               {showAddPartner ? (
                 <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
                   <Input
@@ -759,7 +889,6 @@ const EditSidebar = () => {
               Key Deliverables
             </h4>
             <div className="space-y-2">
-              {/* Add New Deliverable Form */}
               {showAddDeliverable ? (
                 <div className="p-3 rounded-md bg-primary/5 border border-primary/20 space-y-3 mb-2">
                   <div>
@@ -829,8 +958,7 @@ const EditSidebar = () => {
                       </Select>
                     </div>
                   </div>
-                  
-                  {/* Sub-deliverables for new deliverable */}
+
                   <div className="pt-2 border-t border-border/30">
                     <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
                     <div className="space-y-1.5">
@@ -890,7 +1018,7 @@ const EditSidebar = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2 pt-2">
                     <button
                       onClick={() => {
@@ -943,11 +1071,11 @@ const EditSidebar = () => {
                   Add New Deliverable
                 </button>
               )}
-              
+
               {proposal.deliverables.map((deliverable, index) => {
                 const totalHours = calculateDeliverableHours(deliverable);
                 const total = calculateDeliverableCost(deliverable);
-                
+
                 return (
                   <Collapsible
                     key={`del-${index}`}
@@ -973,7 +1101,6 @@ const EditSidebar = () => {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
-                        {/* Title */}
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Title</Label>
                           <Input
@@ -983,8 +1110,7 @@ const EditSidebar = () => {
                             placeholder="Deliverable title..."
                           />
                         </div>
-                        
-                        {/* Description */}
+
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Description</Label>
                           <Textarea
@@ -994,8 +1120,7 @@ const EditSidebar = () => {
                             placeholder="Deliverable description..."
                           />
                         </div>
-                        
-                        {/* Pricing */}
+
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Hourly Rate</Label>
                           <div className="relative mt-1">
@@ -1008,8 +1133,7 @@ const EditSidebar = () => {
                             />
                           </div>
                         </div>
-                        
-                        {/* Hours per week */}
+
                         <div>
                           <Label className="text-[10px] text-muted-foreground">Hours per Week</Label>
                           <Input
@@ -1019,8 +1143,7 @@ const EditSidebar = () => {
                             className="h-7 text-xs mt-1"
                           />
                         </div>
-                        
-                        {/* Duration */}
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label className="text-[10px] text-muted-foreground">Duration</Label>
@@ -1047,13 +1170,12 @@ const EditSidebar = () => {
                             </Select>
                           </div>
                         </div>
-                        
-                        {/* Sub-Deliverables */}
+
                         <div className="pt-2 border-t border-border/30">
                           <Label className="text-[10px] text-muted-foreground mb-2 block">Engagement Items</Label>
                           <div className="space-y-1.5">
                             {deliverable.subDeliverables?.map((sub, subIndex) => (
-                              <div 
+                              <div
                                 key={`sub-${index}-${subIndex}`}
                                 className="flex items-center gap-2"
                               >
@@ -1063,7 +1185,7 @@ const EditSidebar = () => {
                                   onCheckedChange={() => toggleSubDeliverable(index, subIndex)}
                                   className="h-3.5 w-3.5"
                                 />
-                                <label 
+                                <label
                                   htmlFor={`sub-${index}-${subIndex}`}
                                   className="text-[10px] text-foreground cursor-pointer flex-1"
                                 >
@@ -1071,8 +1193,7 @@ const EditSidebar = () => {
                                 </label>
                               </div>
                             ))}
-                            
-                            {/* Add new sub-deliverable */}
+
                             <div className="flex items-center gap-1 mt-2">
                               <Input
                                 value={newSubDeliverableInputs[index] || ''}
@@ -1100,8 +1221,7 @@ const EditSidebar = () => {
                             </div>
                           </div>
                         </div>
-                        
-                        {/* Summary */}
+
                         <div className="pt-2 border-t border-border/30 space-y-1">
                           <div className="flex justify-between text-[10px] text-muted-foreground">
                             <span>{deliverable.hoursPerPeriod} hrs/wk × {deliverable.duration} {deliverable.durationUnit}</span>
@@ -1122,7 +1242,7 @@ const EditSidebar = () => {
             </div>
           </div>
 
-          {/* Engagement Settings */}
+          {/* Engagement Packages Section */}
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Package className="w-3 h-3" />
@@ -1154,7 +1274,6 @@ const EditSidebar = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
-                      {/* Hours per Week */}
                       <div>
                         <Label className="text-[10px] text-muted-foreground">Hours per Week</Label>
                         <Input
@@ -1164,8 +1283,7 @@ const EditSidebar = () => {
                           className="h-7 text-xs mt-1"
                         />
                       </div>
-                      
-                      {/* Duration Weeks */}
+
                       <div>
                         <Label className="text-[10px] text-muted-foreground">Duration (weeks)</Label>
                         <Input
@@ -1175,8 +1293,7 @@ const EditSidebar = () => {
                           className="h-7 text-xs mt-1"
                         />
                       </div>
-                      
-                      {/* Selected Sub-Deliverables from included deliverables */}
+
                       <div className="pt-2 border-t border-border/30">
                         <Label className="text-[10px] text-muted-foreground mb-2 block">Included Deliverables</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -1185,7 +1302,7 @@ const EditSidebar = () => {
                             if (!deliverable) return null;
                             const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
                             if (selectedSubs.length === 0) return null;
-                            
+
                             return (
                               <div key={delTitle} className="space-y-1">
                                 <span className="text-[10px] font-medium text-foreground">{delTitle}</span>
@@ -1202,8 +1319,7 @@ const EditSidebar = () => {
                           })}
                         </div>
                       </div>
-                      
-                      {/* Auto-Calculate Toggle */}
+
                       <div className="flex items-center justify-between pt-2 border-t border-border/30">
                         <span className="text-[10px] text-muted-foreground">Auto-calculate price</span>
                         <Switch
@@ -1212,8 +1328,7 @@ const EditSidebar = () => {
                           className="scale-75"
                         />
                       </div>
-                      
-                      {/* Summary */}
+
                       <div className="pt-2 border-t border-border/30">
                         <div className="flex justify-between text-[10px] text-muted-foreground">
                           <span>Total hours:</span>
@@ -1231,7 +1346,6 @@ const EditSidebar = () => {
             </div>
           </div>
 
-          {/* Hidden Items Section */}
           {hasHiddenItems && (
             <>
               <div className="border-t border-border pt-4">
@@ -1241,7 +1355,6 @@ const EditSidebar = () => {
                 <p className="text-[10px] text-muted-foreground mb-3">Click to add back</p>
               </div>
 
-              {/* Hidden Deliverables */}
               {(proposal.hiddenDeliverables?.length || 0) > 0 && (
                 <div>
                   <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Deliverables</h5>
@@ -1262,7 +1375,6 @@ const EditSidebar = () => {
                 </div>
               )}
 
-              {/* Hidden Packages */}
               {(proposal.hiddenPackages?.length || 0) > 0 && (
                 <div>
                   <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Packages</h5>
@@ -1284,7 +1396,6 @@ const EditSidebar = () => {
                 </div>
               )}
 
-              {/* Hidden Pillars */}
               {((value as any).hiddenPillars?.length || 0) > 0 && (
                 <div>
                   <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Value Pillars</h5>
@@ -1305,7 +1416,6 @@ const EditSidebar = () => {
                 </div>
               )}
 
-              {/* Hidden Differentiators */}
               {((value as any).hiddenDifferentiators?.length || 0) > 0 && (
                 <div>
                   <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Differentiators</h5>

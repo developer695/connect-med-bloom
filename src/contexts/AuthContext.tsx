@@ -22,8 +22,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAdminRole = async (userId: string) => {
     const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
+      .from("Users")
+      .select("email")
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         // Defer admin check with setTimeout
         if (session?.user) {
           setTimeout(() => {
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         checkAdminRole(session.user.id).then((isAdmin) => {
           setIsAdmin(isAdmin);
@@ -81,14 +81,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
+
+    // 1️⃣ Sign up the user in Supabase Auth
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
       },
     });
-    return { error };
+
+    if (signUpError) {
+      return { error: signUpError };
+    }
+
+    // 2️⃣ Insert the user into the Users table
+    if (data.user) {
+      const { error: dbError } = await supabase.from("Users").insert([
+        {
+          user_id: data.user.id,
+          email: data.user.email,
+          role: "user", // default role 
+        },
+      ]);
+
+      if (dbError) {
+        console.error("Error inserting user into Users table:", dbError);
+        return { error: dbError };
+      }
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {

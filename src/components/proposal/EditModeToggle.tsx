@@ -40,10 +40,7 @@ const EditModeToggle = () => {
       {isEditMode && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive">
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden md:inline">Reset</span>
-            </Button>
+           
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

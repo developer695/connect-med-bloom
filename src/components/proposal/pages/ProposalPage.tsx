@@ -29,7 +29,6 @@ const ProposalPage = () => {
     updateContent("proposal", { deliverables: newDeliverables });
   };
 
-  // Toggle deliverable inclusion in a package
   const toggleDeliverableInPackage = (pkgIndex: number, deliverableTitle: string) => {
     const newPackages = [...proposal.packages];
     const pkg = newPackages[pkgIndex];
@@ -49,29 +48,22 @@ const ProposalPage = () => {
     updateContent("proposal", { packages: newPackages });
   };
 
-  // Get calculated or manual price for a package
-  // Uses all current deliverables in the Key Deliverables section
   const getPackagePrice = (pkg: Package): string => {
     if (pkg.autoCalculate) {
-      const allDeliverableTitles = proposal.deliverables.map(d => d.title);
-      const calculatedPrice = calculatePackagePrice(allDeliverableTitles, proposal.deliverables);
+      const calculatedPrice = calculatePackagePrice(pkg.includedDeliverables || [], proposal.deliverables);
       return formatPrice(calculatedPrice);
     }
     return pkg.price;
   };
 
-  // Get calculated or manual duration for a package
-  // Uses all current deliverables in the Key Deliverables section
   const getPackageDuration = (pkg: Package): string => {
     if (pkg.autoCalculate) {
-      const allDeliverableTitles = proposal.deliverables.map(d => d.title);
-      const months = calculatePackageDurationMonths(allDeliverableTitles, proposal.deliverables);
+      const months = calculatePackageDurationMonths(pkg.includedDeliverables || [], proposal.deliverables);
       return `${months}-month engagement`;
     }
     return pkg.duration;
   };
 
-  // Deliverables handlers
   const handleReorderDeliverables = (newDeliverables: Deliverable[]) => {
     updateContent("proposal", { deliverables: newDeliverables });
   };
@@ -88,7 +80,6 @@ const ProposalPage = () => {
     updateContent("proposal", { deliverables: newDeliverables, hiddenDeliverables: newHidden });
   };
 
-  // Packages handlers
   const handleReorderPackages = (newPackages: Package[]) => {
     updateContent("proposal", { packages: newPackages });
   };
@@ -105,7 +96,6 @@ const ProposalPage = () => {
     updateContent("proposal", { packages: newPackages, hiddenPackages: newHidden });
   };
 
-  // Get time display string for a deliverable
   const getTimeDisplay = (deliverable: Deliverable): string => {
     const unitLabel = deliverable.durationUnit === 'weeks' ? 'wk' : 'mo';
     return `${deliverable.hoursPerPeriod} hrs/${unitLabel} × ${deliverable.duration} ${deliverable.durationUnit}`;
@@ -134,7 +124,6 @@ const ProposalPage = () => {
           </h2>
         </motion.div>
 
-        {/* Project Team Section */}
         {proposal.projectTeam && proposal.projectTeam.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -174,7 +163,6 @@ const ProposalPage = () => {
           </motion.div>
         )}
 
-        {/* Scope Section */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -196,7 +184,6 @@ const ProposalPage = () => {
           </p>
         </motion.div>
 
-        {/* Deliverables Section */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -253,7 +240,6 @@ const ProposalPage = () => {
           />
         </motion.div>
 
-        {/* Packages/Pricing Section */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -267,7 +253,6 @@ const ProposalPage = () => {
             />
           </h3>
           
-          {/* Packages */}
           <div className="space-y-4">
             <div className={`grid gap-6 ${proposal.packages.length === 1 ? 'grid-cols-1' : proposal.packages.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'}`}>
               {proposal.packages.map((pkg, pkgIndex) => (
@@ -313,43 +298,41 @@ const ProposalPage = () => {
                     )}
                   </div>
                   
-                  {/* Engagement Duration Info */}
                   <div className="text-xs text-muted-foreground mb-4 space-y-1">
                     <p>{pkg.hoursPerWeek} hours/week • {pkg.durationWeeks} weeks</p>
                     <p>{Math.round(pkg.durationWeeks / 4.345 * 10) / 10}-month engagement</p>
                   </div>
                   
-                  {/* Included Deliverables with Sub-Deliverables - Grid Layout */}
-                  {/* Only show deliverables that exist in the Key Deliverables section */}
                   <div className={`grid gap-3 ${proposal.packages.length === 1 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-1'}`}>
-                    {proposal.deliverables.map((deliverable) => {
-                      const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
-                      
-                      // All deliverables in Key Deliverables section are automatically included
-                      return (
-                        <div 
-                          key={deliverable.title} 
-                          className="bg-muted/20 rounded-md p-3 border border-border/30"
-                        >
-                          <div className="flex items-start gap-2">
-                            <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                            <span className="text-sm font-medium text-foreground">
-                              {deliverable.title}
-                            </span>
+                    {proposal.deliverables
+                      .filter(deliverable => pkg.includedDeliverables?.includes(deliverable.title))
+                      .map((deliverable) => {
+                        const selectedSubs = deliverable.subDeliverables?.filter(s => s.included) || [];
+                        
+                        return (
+                          <div 
+                            key={deliverable.title} 
+                            className="bg-muted/20 rounded-md p-3 border border-border/30"
+                          >
+                            <div className="flex items-start gap-2">
+                              <Check className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                              <span className="text-sm font-medium text-foreground">
+                                {deliverable.title}
+                              </span>
+                            </div>
+                            {selectedSubs.length > 0 && (
+                              <ul className="ml-6 mt-2 space-y-1">
+                                {selectedSubs.map((sub, subIdx) => (
+                                  <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                    <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
+                                    {sub.name}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
-                          {selectedSubs.length > 0 && (
-                            <ul className="ml-6 mt-2 space-y-1">
-                              {selectedSubs.map((sub, subIdx) => (
-                                <li key={subIdx} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                  <span className="w-1 h-1 rounded-full bg-primary flex-shrink-0" />
-                                  {sub.name}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 </motion.div>
               ))}
@@ -357,7 +340,6 @@ const ProposalPage = () => {
           </div>
         </motion.div>
 
-        {/* Terms Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

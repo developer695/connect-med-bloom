@@ -1,110 +1,98 @@
 import { useState } from "react";
-import { Share2, Copy, Check, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Share2, Copy, Check, Download, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
-import type { Json } from "@/integrations/supabase/types";
 
 const ShareDialog = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
+  const { currentProposalUuid } = useProposalContent();
+  const [shareUrl, setShareUrl] = useState<string>("");
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-  const { proposalId, content } = useProposalContent();
+  const [expiresAt, setExpiresAt] = useState<string>("");
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const generateShareLink = async () => {
-    setIsLoading(true);
+    setIsGenerating(true);
+    console.log("📋 Current Proposal ID:", currentProposalUuid);
+
     try {
-      let viewToken: string | null = null;
+      if (!currentProposalUuid) {
+        alert("Please save the proposal first before sharing");
+        setIsGenerating(false);
+        return;
+      }
 
-      if (proposalId) {
-        // Existing proposal - fetch view_token
-        const { data, error } = await supabase
-          .from("proposals")
-          .select("view_token")
-          .eq("id", proposalId)
-          .maybeSingle();
+      console.log("🔍 Fetching proposal with ID:", currentProposalUuid);
+      
+      const { data: existingProposal, error: fetchError } = await supabase
+        .from("site_content")
+        .select("view_token, id")
+        .eq("id", currentProposalUuid)
+        .single();
 
-        if (error) throw error;
-        viewToken = data?.view_token || null;
-      } else {
-        // No existing proposal - create new one with current content
-        const { data, error } = await supabase
-          .from("proposals")
-          .insert({
-            title: content.cover.title || "Untitled Proposal",
-            content: JSON.parse(JSON.stringify(content)) as Json,
-            author: content.letter.signature || null,
+      if (fetchError) {
+        console.error("❌ Fetch error:", fetchError);
+        throw fetchError;
+      }
+
+      console.log("✅ Found proposal:", existingProposal);
+
+      let viewToken = existingProposal?.view_token;
+
+      if (!viewToken) {
+        console.log("🔄 No view_token found, generating new one...");
+        viewToken = crypto.randomUUID();
+
+        const { error: updateError } = await supabase
+          .from("site_content")
+          .update({
+            view_token: viewToken,
+            expires_at: expiresAt || null,
+            allow_download: allowDownload,
           })
-          .select("view_token")
-          .single();
+          .eq("id", currentProposalUuid);
 
-        if (error) throw error;
-        viewToken = data?.view_token || null;
-      }
+        if (updateError) {
+          console.error("❌ Update error:", updateError);
+          throw updateError;
+        }
 
-      if (viewToken) {
-        const baseUrl = window.location.origin;
-        const url = `${baseUrl}/proposal/${viewToken}`;
-        setShareUrl(url);
-        toast({
-          title: "Link generated!",
-          description: "Your shareable link is ready.",
-        });
+        console.log("✅ View token saved:", viewToken);
       } else {
-        throw new Error("Could not generate view token");
+        console.log("✅ Using existing view_token:", viewToken);
       }
-    } catch (error) {
-      console.error("Error generating share link:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate shareable link. Please try again.",
-        variant: "destructive",
-      });
+
+      const url = `${window.location.origin}/proposal/${viewToken}`;
+      setShareUrl(url);
+
+      console.log("🎉 Public share link generated:", url);
+    } catch (error: any) {
+      console.error("❌ Error generating share link:", error);
+      alert(`Error: ${error.message || 'Failed to generate share link'}`);
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
 
   const copyToClipboard = async () => {
+    if (!shareUrl) return;
+    
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast({
-        title: "Copied!",
-        description: "Link copied to clipboard.",
-      });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy link.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (!open) {
-      setShareUrl("");
-      setCopied(false);
+      console.error('Failed to copy:', error);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Share2 className="w-4 h-4" />
@@ -114,43 +102,98 @@ const ShareDialog = () => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Share Proposal</DialogTitle>
-          <DialogDescription>
-            Generate a shareable link. Clients will see the latest version in view-only mode.
-          </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4 py-4">
-          {!shareUrl ? (
-            <Button onClick={generateShareLink} disabled={isLoading} className="w-full">
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Generate Shareable Link
-                </>
-              )}
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Input value={shareUrl} readOnly className="flex-1" />
-              <Button onClick={copyToClipboard} variant="outline" size="icon">
-                {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          )}
-          {shareUrl && (
+        
+        {!shareUrl ? (
+          <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This link always shows the most recent version of the proposal.
+              {currentProposalUuid 
+                ? 'Generate a shareable link for this proposal'
+                : '⚠️ Please save the proposal first before sharing'}
             </p>
-          )}
-        </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="download" className="text-sm font-medium">
+                  Allow PDF Download
+                </Label>
+                <Switch
+                  id="download"
+                  checked={allowDownload}
+                  onCheckedChange={setAllowDownload}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="expires" className="text-sm font-medium">
+                  Link Expiration (Optional)
+                </Label>
+                <Input
+                  id="expires"
+                  type="datetime-local"
+                  value={expiresAt}
+                  onChange={(e) => setExpiresAt(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
+            <Button 
+              onClick={generateShareLink} 
+              disabled={!currentProposalUuid || isGenerating}
+              className="w-full"
+            >
+              {isGenerating ? 'Generating...' : 'Generate Share Link'}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Share Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={shareUrl}
+                  readOnly
+                  className="flex-1"
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={copyToClipboard}
+                  className="flex-shrink-0"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Download className="w-4 h-4" />
+                <span>PDF Download: {allowDownload ? 'Enabled' : 'Disabled'}</span>
+              </div>
+              {expiresAt && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>Expires: {new Date(expiresAt).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+            
+            <Button
+              variant="outline"
+              onClick={() => setShareUrl("")}
+              className="w-full"
+            >
+              Generate New Link
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

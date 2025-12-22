@@ -174,6 +174,8 @@ const ProposalViewerContent = ({ content }: { content: ProposalContent }) => {
 
 const ProposalViewer = () => {
   const { shareId } = useParams<{ shareId: string }>();
+  console.log("shareId",shareId);
+  
   const navigate = useNavigate();
   const [content, setContent] = useState<ProposalContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -189,9 +191,9 @@ const ProposalViewer = () => {
 
       try {
         const { data, error: fetchError } = await supabase
-          .from("shared_proposals")
+          .from("site_content")
           .select("content, expires_at")
-          .eq("share_id", shareId)
+          .eq("view_token", shareId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;

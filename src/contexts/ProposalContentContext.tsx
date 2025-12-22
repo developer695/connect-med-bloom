@@ -1,6 +1,26 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+
+// Custom debounce function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+
+  return function executedFunction(...args: Parameters<T>) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
 
 // Helper to get current date formatted
 const getCurrentDateFormatted = () => format(new Date(), "MMMM yyyy");
@@ -15,7 +35,6 @@ export interface ShapeConfig {
 
 export type DurationUnit = 'weeks' | 'months';
 
-// Constant for weeks per month conversion
 const WEEKS_PER_MONTH = 4.345;
 
 export interface SubDeliverable {
@@ -26,39 +45,23 @@ export interface SubDeliverable {
 export interface Deliverable {
   title: string;
   description: string;
-  rate: number; // hourly rate in dollars
-  hoursPerPeriod: number; // hours per week (always weekly)
-  duration: number; // number of weeks or months
-  durationUnit: DurationUnit; // weeks or months
+  rate: number;
+  hoursPerPeriod: number;
+  duration: number;
+  durationUnit: DurationUnit;
   subDeliverables: SubDeliverable[];
 }
-
-// Calculate total hours from deliverable
-// hoursPerPeriod is always per week, so convert months to weeks if needed
-export const calculateDeliverableHours = (deliverable: Deliverable): number => {
-  if (deliverable.durationUnit === 'months') {
-    // Convert months to weeks, then multiply by hours per week
-    const weeks = deliverable.duration * WEEKS_PER_MONTH;
-    return Math.round(deliverable.hoursPerPeriod * weeks);
-  }
-  return deliverable.hoursPerPeriod * deliverable.duration;
-};
-
-// Calculate deliverable total cost
-export const calculateDeliverableCost = (deliverable: Deliverable): number => {
-  return deliverable.rate * calculateDeliverableHours(deliverable);
-};
 
 export interface Package {
   name: string;
   description: string;
   price: string;
   duration: string;
-  hoursPerWeek: number; // engagement hours per week
-  durationWeeks: number; // engagement duration in weeks
+  hoursPerWeek: number;
+  durationWeeks: number;
   features: string[];
-  includedDeliverables: string[]; // titles of included deliverables
-  autoCalculate: boolean; // whether to auto-calculate price from deliverables
+  includedDeliverables: string[];
+  autoCalculate: boolean;
 }
 
 export interface ProposalContent {
@@ -67,12 +70,12 @@ export interface ProposalContent {
     title: string;
     subtitle: string;
     clientLogo?: string;
-    date: string;
+    date?: string;
     company: string;
     email: string;
   };
   letter: {
-    date: string;
+    date?: string;
     salutation: string;
     paragraphs: string[];
     closing: string;
@@ -169,242 +172,128 @@ export interface ProposalContent {
   shapes: Record<string, ShapeConfig>;
 }
 
-const defaultContent: ProposalContent = {
+// Minimal fallback content
+const fallbackContent: ProposalContent = {
   cover: {
-    tagline: "STRATEGIC ADVISORY PROPOSAL",
-    title: "Streamlining US Market Entry for MedTech Innovation",
-    subtitle: "A comprehensive partnership framework for accelerating commercialization and value creation",
+    tagline: "Loading...",
+    title: "Loading content...",
+    subtitle: "",
     date: getCurrentDateFormatted(),
-    company: "UnifiMed Global Advisory",
-    email: "info@unifimed.com",
+    company: "Loading...",
+    email: "",
   },
   letter: {
     date: getCurrentDateFullFormatted(),
-    salutation: "Dear Partner,",
-    paragraphs: [
-      "The journey from MedTech innovation to successful US market commercialization represents one of the most complex and high-stakes challenges in healthcare today. While breakthrough technologies hold immense promise for improving patient outcomes, navigating the intricate regulatory pathways, establishing market access, and securing sustainable reimbursement requires specialized expertise and strategic execution.",
-      "UnifiMed was founded to bridge this critical gap. As a global advisory firm, we partner with early-stage MedTech founders, executives, and investors to transform innovative solutions into market-ready commercial successes. Our approach integrates clinical validation, regulatory excellence, and strategic commercialization into a unified pathway that de-risks investment and accelerates time to market.",
-      "This proposal outlines our comprehensive service framework, developed through years of hands-on experience leading clinical departments, regulatory submissions, and product launches for both startups and Fortune 500 companies. Our team uniquely combines deep clinical expertise, regulatory acumen, and commercial strategy execution to address the full spectrum of challenges inherent in US market entry.",
-      "What distinguishes UnifiMed is our scalable ecosystem model. Rather than offering fragmented consulting services, we create integrated partnerships that provide access to capital networks, operational execution capabilities, and strategic guidance throughout the entire commercialization lifecycle.",
-      "Our mission extends beyond business success. We are committed to advancing healthcare by ensuring that groundbreaking technologies reach the patients who need them most. Every partnership we undertake is evaluated through the lens of clinical impact, commercial viability, and long-term sustainability.",
-      "We welcome the opportunity to discuss how our expertise and resources can support your specific objectives and look forward to the possibility of working together to bring transformative healthcare solutions to market.",
-    ],
-    closing: "Sincerely,",
-    signature: "The UnifiMed Leadership Team",
-    footer: "UnifiMed Global Advisory | info@unifimed.com | United States",
+    salutation: "",
+    paragraphs: ["Please wait while we load your content..."],
+    closing: "",
+    signature: "",
+    footer: "",
   },
   about: {
-    sectionLabel: "COMPANY OVERVIEW",
-    title: "About UnifiMed",
-    intro: "UnifiMed is a global advisory firm supporting early-stage MedTech founders and executives on their journey to commercialization in the United States. We provide a comprehensive suite of services, including regulatory guidance, market strategy development, financial support through direct investment and access to capital networks, and operational execution.",
-    stats: [
-      { title: "Global Reach", description: "Supporting international MedTech innovators entering the US market" },
-      { title: "Focused Expertise", description: "Specialized in early-stage MedTech commercialization strategies" },
-      { title: "Proven Results", description: "Track record with startups and Fortune 500 companies" },
-    ],
-    expertiseTitle: "Our Expertise",
-    expertiseText: "Our team brings a unique combination of clinical, regulatory, and commercial expertise, having successfully led clinical departments, regulatory and reimbursement activities, and commercial strategies and product launches for several startup and Fortune 500 companies. Leveraging our extensive knowledge and network, we help MedTech innovators achieve sustainable growth and establish a strong foothold in the U.S. healthcare market.",
-    missionTitle: "Our Mission",
-    missionText: "Our mission is to bridge the gap between innovation and patient care by empowering MedTech founders with the access, expertise, resources, and strategic partnerships needed to succeed. By pairing groundbreaking technologies with clinical and commercial expertise, we streamline market entry for our clients and companies. We are dedicated to advancing healthcare by ensuring groundbreaking technologies reach the market, improving outcomes, and enhancing the quality of life for patients across the United States.",
-    quote: "UnifiMed is a scalable and efficient MedTech ecosystem designed to de-risk innovative companies, accelerate time to market, and deliver measurable outcomes for both companies and investors.",
+    sectionLabel: "",
+    title: "",
+    intro: "",
+    stats: [],
+    expertiseTitle: "",
+    expertiseText: "",
+    missionTitle: "",
+    missionText: "",
+    quote: "",
   },
   howWeWork: {
-    sectionLabel: "METHODOLOGY",
-    title: "How We Work",
-    steps: [
-      { title: "Discovery & Assessment", description: "We begin with a comprehensive evaluation of your technology, market opportunity, and organizational readiness. This includes clinical validation assessment, regulatory pathway analysis, competitive landscape evaluation, and identification of key commercialization challenges and opportunities." },
-      { title: "Strategic Planning", description: "Based on our assessment, we develop a comprehensive commercialization roadmap tailored to your specific needs. This includes regulatory strategy development, clinical evidence generation plans, market access and reimbursement strategies, capital requirements and funding strategies, and timeline optimization for accelerated market entry." },
-      { title: "Execution & Implementation", description: "We provide hands-on support throughout the implementation phase, working alongside your team to execute the commercialization strategy. This includes regulatory submission preparation and management, clinical trial design and oversight, commercial infrastructure development, stakeholder engagement and partnership development, and continuous monitoring and optimization." },
-      { title: "Market Launch & Scaling", description: "As you approach market entry, we support the commercial launch and early market traction phases. This includes go-to-market execution support, sales and marketing strategy implementation, key opinion leader engagement, market feedback integration, and performance tracking and optimization." },
-      { title: "Ongoing Partnership", description: "Our relationship extends beyond initial market entry. We provide continued strategic guidance as your organization scales, including expansion planning, portfolio optimization, strategic transaction support, and access to our growing network of industry partners and investors." },
-    ],
-    collaborativeTitle: "Our Collaborative Approach",
-    collaborativeText: "Throughout each phase, we maintain transparent communication, provide regular progress updates, and adapt our approach based on evolving market conditions and organizational needs. We view ourselves as an extension of your team, committed to your long-term success.",
+    sectionLabel: "",
+    title: "",
+    steps: [],
+    collaborativeTitle: "",
+    collaborativeText: "",
   },
   solutions: {
-    sectionLabel: "CORE CAPABILITIES",
-    title: "Our Solutions",
-    services: [
-      { title: "Capital & Investment", description: "We provide direct investment opportunities and facilitate access to our extensive network of venture capital and private equity partners. Our capital solutions include seed and early-stage funding, growth capital connections, strategic investment structuring, and investor relations support." },
-      { title: "Clinical Expertise", description: "Our clinical team provides comprehensive support for clinical validation and evidence generation. Services include clinical trial design and management, clinical advisory board development, key opinion leader engagement, real-world evidence strategy, and clinical data analysis and publication support." },
-      { title: "Talent Acquisition", description: "We help build world-class teams by connecting you with top-tier talent across all functional areas. Our talent services include executive search and placement, advisory board formation, functional team building, organizational design consulting, and ongoing talent development support." },
-      { title: "Commercial Development", description: "We develop and execute comprehensive commercialization strategies tailored to your technology and market opportunity. Services include market analysis and segmentation, go-to-market strategy development, sales force design and training, marketing and brand positioning, and partnership and channel development." },
-      { title: "Regulatory Submissions", description: "Our regulatory experts navigate complex FDA pathways to accelerate approval timelines. We provide regulatory strategy development, pathway assessment and optimization, submission preparation and management, FDA communication and meeting preparation, and post-market compliance support." },
-      { title: "Market Access & Reimbursement", description: "We develop comprehensive strategies to ensure appropriate reimbursement and market access. Services include reimbursement pathway analysis, health economics and outcomes research, payer engagement and contracting, coding and coverage strategy, and value proposition development." },
-    ],
-    integratedTitle: "Integrated Service Model",
-    integratedText: "While each service can be engaged independently, our true value lies in our integrated approach. By coordinating across regulatory, clinical, commercial, and financial dimensions, we create synergies that accelerate timelines, reduce costs, and increase the probability of commercial success.",
+    sectionLabel: "",
+    title: "",
+    services: [],
+    integratedTitle: "",
+    integratedText: "",
   },
   markets: {
-    sectionLabel: "FOCUS AREAS",
-    title: "Core Market Segments",
-    segments: [
-      { title: "Medical Specialties", description: "Medical specialties like oncology, cardiology, neurology, and orthopedics drive some of the most innovative advancements in healthcare. From precision oncology therapies and remote cardiac monitoring devices to neuromodulation systems for neurological disorders, these solutions address critical patient needs.", tags: ["Oncology", "Cardiology", "Neurology", "Orthopedics"] },
-      { title: "Surgical & Medical Devices", description: "The surgical and medical devices market is advancing rapidly with innovations like robotic-assisted surgery systems, AI-powered surgical planning tools, and next-generation orthopedic implants. These devices improve precision, reduce recovery times, and enhance patient safety.", tags: ["Robotic Surgery", "AI Surgical Planning", "Orthopedic Implants", "Vascular Tech"] },
-      { title: "Therapeutics & Drug Delivery", description: "Therapeutics and drug delivery systems are revolutionizing treatment by enhancing precision and improving patient outcomes. Examples include nanoparticle-based drug delivery platforms, sustained-release therapies, and biologic drug delivery devices.", tags: ["Nanoparticle Delivery", "Sustained Release", "Biologics"] },
-      { title: "Diagnostics & Imaging", description: "Diagnostics and imaging are critical in early disease detection and effective treatment planning. Breakthroughs include AI-driven diagnostic platforms, point-of-care blood analyzers, and portable imaging technologies like handheld ultrasounds and advanced CT scanners.", tags: ["AI Diagnostics", "Point-of-Care", "Portable Imaging", "Advanced Scanners"] },
-    ],
-    crossFunctionalTitle: "Cross-Functional Expertise",
-    crossFunctionalText: "Our team's diverse experience across these market segments enables us to provide nuanced, sector-specific guidance while leveraging cross-functional insights to optimize your commercialization strategy.",
+    sectionLabel: "",
+    title: "",
+    segments: [],
+    crossFunctionalTitle: "",
+    crossFunctionalText: "",
   },
   clients: {
-    sectionLabel: "WHO WE SERVE",
-    title: "Our Clients",
-    intro: "UnifiMed partners with a diverse range of stakeholders across the MedTech ecosystem, focusing on early-stage founders, executives, and investors who are driving innovation in healthcare.",
-    clientTypes: [
-      { title: "Healthcare Innovators and Inventors", description: "Clinicians, researchers, and inventors with novel technologies seeking support to transition from concept to market-ready solutions. We offer end-to-end guidance, from regulatory compliance to market positioning." },
-      { title: "Global MedTech Companies Entering the US Market", description: "International companies aiming to establish a foothold in the U.S. healthcare market. We provide localized expertise to navigate the complex regulatory environment, build connections with key stakeholders, and design effective market-entry strategies." },
-      { title: "Strategic Partners and Collaborators", description: "Organizations and institutions aligned with advancing healthcare innovation, including research institutions, healthcare providers, and industry associations. We work collaboratively to enhance the impact of innovative solutions and improve patient outcomes." },
-      { title: "Investors and Capital Partners", description: "Venture capital firms, private equity groups, and strategic investors seeking to maximize returns in the MedTech sector. We provide due diligence support, portfolio company guidance, and strategic advisory to optimize investment outcomes." },
-    ],
-    tailoredTitle: "Tailored Partnerships",
-    tailoredText: "By tailoring our services to the unique needs of each client, UnifiMed bridges the gap between innovation and commercialization. Whether it's navigating regulatory complexities, securing funding, or executing market entry strategies, we provide the strategic support to ensure long-term success.",
+    sectionLabel: "",
+    title: "",
+    intro: "",
+    clientTypes: [],
+    tailoredTitle: "",
+    tailoredText: "",
   },
   team: {
-    sectionLabel: "OUR TEAM",
-    title: "Partners",
-    intro: "Our leadership team brings together decades of experience across clinical practice, regulatory affairs, commercial strategy, and investment. Together, we provide the integrated expertise needed to navigate the complexities of MedTech commercialization.",
-    members: [
-      { name: "Jordan Foster", role: "Founder, Managing Partner", bio: "Jordan founded UnifiMed to bridge the gap between innovation and patient care. With extensive experience leading clinical departments and commercial strategies for startups and Fortune 500 companies, Jordan brings a unique perspective to MedTech commercialization." },
-      { name: "Katy Morrison", role: "Partner, Clinical Strategy", bio: "Katy leads our clinical strategy practice, bringing deep expertise in clinical trial design, evidence generation, and key opinion leader engagement. She has successfully guided numerous medical devices through complex clinical pathways." },
-      { name: "Mike Chen", role: "Partner, Regulatory Affairs", bio: "Mike oversees our regulatory practice, specializing in FDA submissions and pathway optimization. His track record includes successful clearances and approvals across multiple therapeutic areas and device classifications." },
-      { name: "Tawney Williams", role: "Partner, Commercial Development", bio: "Tawney leads commercial strategy and go-to-market execution. Her experience spans market analysis, sales force design, and partnership development for both early-stage and established MedTech companies." },
-      { name: "Nick Patel", role: "Partner, Capital Markets", bio: "Nick manages our investment and capital access services. With deep connections across venture capital and private equity networks, he helps clients secure funding and structure strategic investments." },
-      { name: "Lisa Vasquez", role: "Partner, Market Access", bio: "Lisa specializes in reimbursement strategy and payer engagement. Her expertise in health economics and outcomes research helps clients develop compelling value propositions and secure sustainable market access." },
-    ],
-    collectiveTitle: "Collective Expertise",
-    collectiveText: "Our partners work collaboratively across all engagements, bringing their specialized expertise to bear on each client's unique challenges. This integrated approach ensures comprehensive support and accelerated outcomes for our clients and portfolio companies.",
+    sectionLabel: "",
+    title: "",
+    intro: "",
+    members: [],
+    collectiveTitle: "",
+    collectiveText: "",
   },
   proposal: {
-    sectionLabel: "ENGAGEMENT PROPOSAL",
-    title: "Scope & Pricing",
-    projectTeamTitle: "Your Project Team",
-    projectTeam: [
-      { name: "Jordan Foster", title: "Managing Partner", bio: "Project lead with 15+ years in MedTech commercialization strategy.", image: "" },
-      { name: "Mike Chen", title: "Regulatory Lead", bio: "FDA pathway expert specializing in device submissions and clearances.", image: "" },
-    ],
-    scopeTitle: "Scope of Engagement",
-    scopeText: "This proposal outlines a comprehensive partnership framework designed to support your US market entry objectives. Our engagement will encompass regulatory strategy, clinical evidence planning, commercial development, and market access—tailored to your specific technology and organizational needs.",
-    deliverablesTitle: "Key Deliverables",
-    deliverables: [
-      { title: "Market Assessment Report", description: "Comprehensive analysis of market opportunity, competitive landscape, and commercialization pathway recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "Competitive landscape analysis", included: true },
-        { name: "Market sizing and segmentation", included: true },
-        { name: "Target customer profiles", included: true },
-        { name: "Go-to-market recommendations", included: false },
-      ]},
-      { title: "Regulatory Strategy Document", description: "Detailed regulatory pathway analysis with FDA submission timeline and milestone planning.", rate: 300, hoursPerPeriod: 25, duration: 3, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "FDA pathway analysis", included: true },
-        { name: "Predicate device identification", included: true },
-        { name: "Submission timeline", included: true },
-        { name: "Risk mitigation plan", included: false },
-      ]},
-      { title: "Clinical Evidence Plan", description: "Strategic framework for clinical validation and evidence generation to support regulatory and commercial objectives.", rate: 275, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "Clinical study design", included: true },
-        { name: "Endpoint selection", included: true },
-        { name: "Site selection criteria", included: false },
-        { name: "Publication strategy", included: false },
-      ]},
-      { title: "Commercial Roadmap", description: "Go-to-market strategy including market segmentation, pricing strategy, and channel development recommendations.", rate: 250, hoursPerPeriod: 20, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "Pricing strategy", included: true },
-        { name: "Channel strategy", included: true },
-        { name: "Sales force design", included: false },
-        { name: "Marketing plan", included: false },
-      ]},
-      { title: "Reimbursement Analysis", description: "Health economics assessment with coding, coverage, and payment strategy recommendations.", rate: 300, hoursPerPeriod: 25, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "Coding analysis", included: true },
-        { name: "Coverage pathway", included: true },
-        { name: "Payer engagement plan", included: false },
-        { name: "HEOR study design", included: false },
-      ]},
-      { title: "Investor Materials", description: "Updated pitch materials and financial projections to support capital raising activities.", rate: 225, hoursPerPeriod: 15, duration: 2, durationUnit: 'weeks' as DurationUnit, subDeliverables: [
-        { name: "Pitch deck", included: true },
-        { name: "Financial model", included: true },
-        { name: "Due diligence package", included: false },
-        { name: "Investor targeting list", included: false },
-      ]},
-    ],
+    sectionLabel: "",
+    title: "",
+    projectTeamTitle: "",
+    projectTeam: [],
+    scopeTitle: "",
+    scopeText: "",
+    deliverablesTitle: "",
+    deliverables: [],
     hiddenDeliverables: [],
-    packagesTitle: "Engagement Options",
-    packages: [
-      { 
-        name: "Foundation", 
-        description: "Strategic assessment and planning", 
-        price: "$75,000", 
-        duration: "3-month engagement",
-        hoursPerWeek: 20,
-        durationWeeks: 12,
-        features: [],
-        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document"],
-        autoCalculate: true
-      },
-      { 
-        name: "Accelerate", 
-        description: "Comprehensive commercialization support", 
-        price: "$150,000", 
-        duration: "6-month engagement",
-        hoursPerWeek: 30,
-        durationWeeks: 26,
-        features: [],
-        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis"],
-        autoCalculate: true
-      },
-      { 
-        name: "Enterprise", 
-        description: "Full-service partnership", 
-        price: "Custom", 
-        duration: "12+ month engagement",
-        hoursPerWeek: 40,
-        durationWeeks: 52,
-        features: [],
-        includedDeliverables: ["Market Assessment Report", "Regulatory Strategy Document", "Clinical Evidence Plan", "Commercial Roadmap", "Reimbursement Analysis", "Investor Materials"],
-        autoCalculate: false
-      },
-    ],
+    packagesTitle: "",
+    packages: [],
     hiddenPackages: [],
-    termsTitle: "Engagement Terms",
-    termsText: "Fees are structured as fixed-price engagements with milestone-based payments. Additional services beyond the defined scope can be added on a time-and-materials basis. We also offer success-based fee structures and equity participation arrangements for qualified opportunities. Specific terms will be outlined in the formal engagement agreement following mutual agreement on scope and objectives.",
+    termsTitle: "",
+    termsText: "",
   },
   value: {
-    sectionLabel: "WHY UNIFIMED",
-    title: "Our Value Proposition",
-    pillars: [
-      { title: "De-Risk", description: "Our integrated approach systematically addresses the key risk factors in MedTech commercialization, from regulatory uncertainty to market adoption challenges, providing investors and founders with greater confidence and predictability." },
-      { title: "Accelerate", description: "By leveraging our extensive network, proven methodologies, and hands-on execution capabilities, we compress timelines and accelerate your path to market, helping you capitalize on market opportunities faster than traditional approaches." },
-      { title: "Scale", description: "Our scalable ecosystem model grows with your organization, providing the resources, expertise, and strategic guidance needed at each stage of development, from initial concept through commercial expansion." },
-      { title: "Optimize", description: "We continuously refine strategies based on real-world feedback and market dynamics, ensuring your approach remains optimized for maximum commercial impact and return on investment." },
-    ],
+    sectionLabel: "",
+    title: "",
+    pillars: [],
     hiddenPillars: [],
-    differentiatorsTitle: "Competitive Differentiators",
-    differentiators: [
-      { title: "Integrated Ecosystem Approach", description: "Unlike fragmented consultancies, we provide end-to-end support across all critical functions" },
-      { title: "Deep Clinical & Commercial Expertise", description: "Our team has led successful commercializations for both startups and Fortune 500 companies" },
-      { title: "Capital Access & Investment Support", description: "We provide both direct investment and connections to our extensive investor network" },
-      { title: "Hands-On Execution", description: "We don't just provide advice—we roll up our sleeves and execute alongside your team" },
-      { title: "Proven Track Record", description: "Our portfolio demonstrates consistent success in navigating complex regulatory and commercial challenges" },
-    ],
+    differentiatorsTitle: "",
+    differentiators: [],
     hiddenDifferentiators: [],
   },
   contact: {
-    sectionLabel: "CLOSING",
-    title: "Let's Move Forward Together",
-    conversationTitle: "Thank You for Your Consideration",
-    intro: "We are excited about the opportunity to partner with you on this journey. Our team is ready to bring our expertise, network, and resources to support your success in the US market. We look forward to discussing how we can work together to achieve your commercialization objectives.",
-    email: "info@unifimed.com",
-    location: "United States",
-    website: "unifimed.com",
-    nextStepsTitle: "Proposed Next Steps",
-    nextSteps: [
-      { title: "Schedule Discussion", description: "Let's arrange a call to review this proposal and address any questions" },
-      { title: "Finalize Scope", description: "We'll work together to refine the engagement scope based on your priorities" },
-      { title: "Execute Agreement", description: "Formalize our partnership with a detailed engagement agreement" },
-      { title: "Kick Off", description: "Begin our collaborative journey toward successful commercialization" },
-    ],
-    ctaButton: "Ready to Get Started?",
-    academyTitle: "UnifiMed Global Advisory",
-    academyText: "We look forward to partnering with you",
+    sectionLabel: "",
+    title: "",
+    conversationTitle: "",
+    intro: "",
+    email: "",
+    location: "",
+    website: "",
+    nextStepsTitle: "",
+    nextSteps: [],
+    ctaButton: "",
+    academyTitle: "",
+    academyText: "",
   },
   shapes: {},
+};
+
+// ✅ CALCULATION HELPER FUNCTIONS (EXPORTED)
+
+// Calculate total hours from deliverable
+export const calculateDeliverableHours = (deliverable: Deliverable): number => {
+  if (deliverable.durationUnit === 'months') {
+    const weeks = deliverable.duration * WEEKS_PER_MONTH;
+    return Math.round(deliverable.hoursPerPeriod * weeks);
+  }
+  return deliverable.hoursPerPeriod * deliverable.duration;
+};
+
+// Calculate deliverable total cost
+export const calculateDeliverableCost = (deliverable: Deliverable): number => {
+  return deliverable.rate * calculateDeliverableHours(deliverable);
 };
 
 // Helper to calculate price from deliverables
@@ -421,7 +310,6 @@ export const calculatePackagePrice = (
   }, 0);
 };
 
-// Helper to calculate total hours from deliverables
 export const calculatePackageHours = (
   includedDeliverables: string[],
   allDeliverables: Deliverable[]
@@ -436,13 +324,12 @@ export const calculatePackageHours = (
 };
 
 // Helper to calculate duration in months from deliverables
-// Finds the longest duration among included deliverables (since they can run in parallel)
 export const calculatePackageDurationMonths = (
   includedDeliverables: string[],
   allDeliverables: Deliverable[]
 ): number => {
   let maxMonths = 0;
-  
+
   includedDeliverables.forEach(title => {
     const deliverable = allDeliverables.find(d => d.title === title);
     if (deliverable) {
@@ -450,13 +337,12 @@ export const calculatePackageDurationMonths = (
       if (deliverable.durationUnit === 'months') {
         months = deliverable.duration;
       } else {
-        // Convert weeks to months using 4.345 weeks per month
         months = deliverable.duration / WEEKS_PER_MONTH;
       }
       maxMonths = Math.max(maxMonths, months);
     }
   });
-  
+
   return Math.ceil(maxMonths) || 1;
 };
 
@@ -476,6 +362,8 @@ export interface SavedProposal {
   clientName: string;
   savedAt: string;
   content: ProposalContent;
+  status?: 'draft' | 'sent' | 'accepted' | 'rejected';
+  createdBy?: string;
 }
 
 interface ProposalContextType {
@@ -484,50 +372,22 @@ interface ProposalContextType {
   isEditMode: boolean;
   setIsEditMode: (value: boolean) => void;
   resetContent: () => void;
-  saveProposal: (name: string, clientName: string) => void;
-  loadProposal: (proposal: SavedProposal) => void;
-  getSavedProposals: () => SavedProposal[];
-  deleteProposal: (id: string) => void;
-  readOnly: boolean;
-  proposalId?: string;
+  currentProposalUuid: string | null;
+  setCurrentProposalUuid: (uuid: string | null) => void;
+  currentProposalVersion: number;
+  setCurrentProposalVersion: (version: number) => void;
+  isLoading: boolean;
+  isSaving: boolean;
+  error: string | null;
+  lastSaved: Date | null;
+  autoSaveEnabled: boolean;
+  setAutoSaveEnabled: (enabled: boolean) => void;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  loadSiteContent: () => Promise<void>;
+  getContent: () => ProposalContent;
 }
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
-
-// Helper to migrate old deliverable format to new format
-const migrateDeliverable = (d: any): Deliverable => {
-  return {
-    title: d.title || "",
-    description: d.description || "",
-    rate: d.rate ?? 250,
-    hoursPerPeriod: d.hoursPerPeriod ?? (d.hours ? Math.round(d.hours / 2) : 20),
-    duration: d.duration ?? (d.timeValue ? d.timeValue * 2 : 2),
-    durationUnit: d.durationUnit ?? 'weeks',
-    subDeliverables: d.subDeliverables ?? [],
-  };
-};
-
-// Helper to migrate old package format to new format with includedDeliverables
-const migratePackage = (p: any, index: number, allDeliverableTitles: string[]): Package => {
-  // Default included deliverables based on package tier
-  const defaultInclusions: string[][] = [
-    allDeliverableTitles.slice(0, 2), // Foundation: first 2
-    allDeliverableTitles.slice(0, 5), // Accelerate: first 5
-    allDeliverableTitles, // Enterprise: all
-  ];
-  
-  return {
-    name: p.name || "",
-    description: p.description || "",
-    price: p.price || "",
-    duration: p.duration || "",
-    hoursPerWeek: p.hoursPerWeek ?? 20,
-    durationWeeks: p.durationWeeks ?? 12,
-    features: p.features || [],
-    includedDeliverables: p.includedDeliverables || defaultInclusions[index] || [],
-    autoCalculate: p.autoCalculate ?? (index < 2),
-  };
-};
 
 interface ProposalContentProviderProps {
   children: ReactNode;
@@ -536,251 +396,221 @@ interface ProposalContentProviderProps {
   proposalId?: string;
 }
 
-export const ProposalContentProvider = ({ children, initialContent, readOnly = false, proposalId }: ProposalContentProviderProps) => {
-  const [content, setContent] = useState<ProposalContent>(() => {
-    // If initialContent is provided (e.g., for viewer mode), use it directly
-    if (initialContent) {
-      return initialContent;
-    }
-    
-    try {
-      const saved = localStorage.getItem("proposal-content");
-      if (saved) {
-        // Check if data is too large (> 4MB) and clear it
-        if (saved.length > 4 * 1024 * 1024) {
-          console.warn('Proposal content too large, clearing localStorage...');
-          localStorage.removeItem("proposal-content");
-          localStorage.removeItem("saved-proposals");
-          return defaultContent;
-        }
-        
-        const parsed = JSON.parse(saved);
-        // Deep merge with defaults to ensure new properties are included
-        const mergedClients = {
-          ...defaultContent.clients,
-          ...parsed.clients,
-          clientTypes: defaultContent.clients.clientTypes.length > (parsed.clients?.clientTypes?.length || 0)
-            ? [...(parsed.clients?.clientTypes || []), ...defaultContent.clients.clientTypes.slice(parsed.clients?.clientTypes?.length || 0)]
-            : (parsed.clients?.clientTypes || defaultContent.clients.clientTypes),
-        };
-        
-        // Migrate deliverables to new format
-        const migratedDeliverables = (parsed.proposal?.deliverables || defaultContent.proposal.deliverables)
-          .map(migrateDeliverable);
-        const migratedHiddenDeliverables = (parsed.proposal?.hiddenDeliverables || [])
-          .map(migrateDeliverable);
-        
-        // Get all deliverable titles for package migration
-        const allDeliverableTitles = migratedDeliverables.map((d: Deliverable) => d.title);
-        
-        // Migrate packages to new format
-        const migratedPackages = (parsed.proposal?.packages || defaultContent.proposal.packages)
-          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-        const migratedHiddenPackages = (parsed.proposal?.hiddenPackages || [])
-          .map((p: any, i: number) => migratePackage(p, i, allDeliverableTitles));
-        
-      return {
-          ...defaultContent,
-          ...parsed,
-          // Always use current dynamic dates
-          cover: { ...defaultContent.cover, ...parsed.cover, date: getCurrentDateFormatted() },
-          letter: { ...defaultContent.letter, ...parsed.letter, date: getCurrentDateFullFormatted() },
-          about: { ...defaultContent.about, ...parsed.about },
-          team: { ...defaultContent.team, ...parsed.team },
-          proposal: { 
-            ...defaultContent.proposal, 
-            ...parsed.proposal,
-            projectTeamTitle: parsed.proposal?.projectTeamTitle || defaultContent.proposal.projectTeamTitle,
-            projectTeam: parsed.proposal?.projectTeam || defaultContent.proposal.projectTeam,
-            deliverables: migratedDeliverables,
-            hiddenDeliverables: migratedHiddenDeliverables,
-            packages: migratedPackages,
-            hiddenPackages: migratedHiddenPackages,
-          },
-          value: { 
-            ...defaultContent.value, 
-            ...parsed.value,
-            hiddenPillars: parsed.value?.hiddenPillars || [],
-            hiddenDifferentiators: parsed.value?.hiddenDifferentiators || [],
-          },
-          contact: { ...defaultContent.contact, ...parsed.contact },
-          clients: mergedClients,
-          shapes: { ...defaultContent.shapes, ...parsed.shapes },
-        };
-      }
-    } catch (error) {
-      console.error("Error loading saved content, resetting to defaults:", error);
-      // Clear corrupted localStorage
-      try {
-        localStorage.removeItem("proposal-content");
-        localStorage.removeItem("saved-proposals");
-      } catch {
-        // Ignore if we can't clear
-      }
-    }
-    return defaultContent;
-  });
+export const ProposalContentProvider = ({
+  children,
+  initialContent,
+  readOnly = false,
+  proposalId
+}: ProposalContentProviderProps) => {
+  const [content, setContent] = useState<ProposalContent>(initialContent || fallbackContent);
   const [isEditMode, setIsEditMode] = useState(false);
-  const isReadOnly = readOnly;
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitialMount = useRef(true);
+  const [currentProposalUuid, setCurrentProposalUuid] = useState<string | null>(proposalId || null);
+  const [currentProposalVersion, setCurrentProposalVersion] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState(!initialContent);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
-  // Auto-save to database when content changes (debounced)
-  const saveToDatabase = useCallback(async (contentToSave: ProposalContent) => {
-    if (!proposalId || isReadOnly) return;
-    
+  const contentRef = useRef<ProposalContent>(content);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  const getContent = useCallback(() => {
+    return contentRef.current;
+  }, []);
+
+  useEffect(() => {
+    if (!initialContent) {
+      loadSiteContent();
+    }
+  }, []);
+
+  // ✅ UPDATED: Load from individual columns
+  const loadSiteContent = async () => {
     try {
-      const { error } = await supabase
-        .from('proposals')
-        .update({ 
-          content: JSON.parse(JSON.stringify(contentToSave)),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', proposalId);
+      setIsLoading(true);
+      setError(null);
+
+      console.log('🔄 Loading site content from Supabase...');
+      const startTime = Date.now();
+
+      const { data, error: fetchError } = await supabase
+        .from('site_content')
+        .select('*') // ✅ Select all columns
+        .eq('is_active', true)
+        .eq('content_type', 'proposal')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
       
-      if (error) {
-        console.error('Error saving to database:', error);
+      const loadTime = Date.now() - startTime;
+      console.log(`⏱️ Load time: ${loadTime}ms`);
+
+      if (fetchError) {
+        console.error('❌ Fetch error:', fetchError);
+        throw fetchError;
+      }
+
+      if (data) {
+        // ✅ Reconstruct content from individual columns
+        const siteContent: ProposalContent = {
+          cover: data.cover || fallbackContent.cover,
+          letter: data.letter || fallbackContent.letter,
+          about: data.about || fallbackContent.about,
+          howWeWork: data.how_we_work || fallbackContent.howWeWork,
+          solutions: data.solutions || fallbackContent.solutions,
+          markets: data.markets || fallbackContent.markets,
+          clients: data.clients || fallbackContent.clients,
+          team: data.team || fallbackContent.team,
+          proposal: data.proposal || fallbackContent.proposal,
+          value: data.value || fallbackContent.value,
+          contact: data.contact || fallbackContent.contact,
+          shapes: data.shapes || fallbackContent.shapes,
+        };
+
+        const contentWithDates: ProposalContent = {
+          ...siteContent,
+          cover: {
+            ...siteContent.cover,
+            date: getCurrentDateFormatted(),
+          },
+          letter: {
+            ...siteContent.letter,
+            date: getCurrentDateFullFormatted(),
+          },
+        };
+
+        setContent(contentWithDates);
+        console.log('✅ Site content loaded from Supabase');
       } else {
-        console.log('Proposal auto-saved to database');
+        console.warn('⚠️ No default content found, using fallback');
       }
     } catch (err) {
-      console.error('Error saving to database:', err);
-    }
-  }, [proposalId, isReadOnly]);
-
-  // Debounced database save effect
-  useEffect(() => {
-    // Skip saving on initial mount
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-
-    // Only save to database if we have a proposalId and not in read-only mode
-    if (!proposalId || isReadOnly) return;
-
-    // Clear any existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Debounce the save operation (1 second delay)
-    saveTimeoutRef.current = setTimeout(() => {
-      saveToDatabase(content);
-    }, 1000);
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [content, proposalId, isReadOnly, saveToDatabase]);
-
-  // Safe localStorage helper that handles quota errors
-  const safeLocalStorageSave = (key: string, value: string): boolean => {
-    // Skip localStorage if we're saving to database
-    if (proposalId) return true;
-    
-    try {
-      localStorage.setItem(key, value);
-      return true;
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.warn('localStorage quota exceeded, clearing old data...');
-        try {
-          localStorage.removeItem('proposal-content');
-          localStorage.removeItem('saved-proposals');
-          localStorage.setItem(key, value);
-          return true;
-        } catch {
-          console.error('Still cannot save after clearing localStorage');
-          return false;
-        }
-      }
-      console.error('Error saving to localStorage:', error);
-      return false;
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load site content';
+      setError(errorMessage);
+      console.error('❌ Error loading site content:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateContent = <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => {
-    // In read-only mode, don't allow updates
-    if (isReadOnly) return;
-    
-    setContent((prev) => {
+  // ✅ UPDATED: Auto-save to individual columns
+  const autoSaveToDatabase = useCallback(
+    debounce(async (contentToSave: ProposalContent, uuid: string, version: number) => {
+      if (!autoSaveEnabled || readOnly) return;
+
+      try {
+        setSaveStatus('saving');
+        setIsSaving(true);
+        console.log('🔄 Auto-saving to Supabase...', uuid);
+
+        const newVersion = version + 1;
+
+        // ✅ Save each section to its own column
+        const { error } = await supabase
+          .from("site_content")
+          .update({
+            cover: contentToSave.cover,
+            letter: contentToSave.letter,
+            about: contentToSave.about,
+            how_we_work: contentToSave.howWeWork,
+            solutions: contentToSave.solutions,
+            markets: contentToSave.markets,
+            clients: contentToSave.clients,
+            team: contentToSave.team,
+            proposal: contentToSave.proposal,
+            value: contentToSave.value,
+            contact: contentToSave.contact,
+            shapes: contentToSave.shapes,
+            version: newVersion,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", uuid);
+
+        if (error) {
+          console.error('❌ Auto-save failed:', error);
+          setSaveStatus('error');
+          return;
+        }
+
+        console.log('✅ Auto-saved successfully! Version:', newVersion);
+        setCurrentProposalVersion(newVersion);
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (error) {
+        console.error('❌ Auto-save error:', error);
+        setSaveStatus('error');
+      } finally {
+        setIsSaving(false);
+      }
+    }, 2000),
+    [autoSaveEnabled, readOnly]
+  );
+
+  const updateContent = useCallback(<K extends keyof ProposalContent>(
+    section: K,
+    data: Partial<ProposalContent[K]>
+  ) => {
+    if (readOnly) return;
+
+    setContent(prev => {
       const newContent = {
         ...prev,
         [section]: { ...prev[section], ...data },
       };
-      safeLocalStorageSave("proposal-content", JSON.stringify(newContent));
+
+      if (currentProposalUuid && autoSaveEnabled) {
+        autoSaveToDatabase(newContent, currentProposalUuid, currentProposalVersion);
+        setSaveStatus('idle');
+      }
+
       return newContent;
     });
+  }, [readOnly, currentProposalUuid, currentProposalVersion, autoSaveEnabled, autoSaveToDatabase]);
+
+  const resetContent = async () => {
+    await loadSiteContent();
+    setCurrentProposalUuid(null);
+    setCurrentProposalVersion(1);
+    setLastSaved(null);
+    setSaveStatus('idle');
   };
 
-  const resetContent = () => {
-    // Only reset cover page and proposal page, preserve everything else
-    const newContent = {
-      ...content,
-      // Reset cover page with fresh dynamic date
-      cover: {
-        ...defaultContent.cover,
-        date: getCurrentDateFormatted(),
-      },
-      // Reset proposal page but preserve project team members
-      proposal: {
-        ...defaultContent.proposal,
-        projectTeam: content.proposal.projectTeam,
-      },
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
     };
-    
-    setContent(newContent);
-    safeLocalStorageSave("proposal-content", JSON.stringify(newContent));
-  };
-
-  const saveProposal = (name: string, clientName: string) => {
-    const savedProposals = getSavedProposals();
-    const newProposal: SavedProposal = {
-      id: Date.now().toString(),
-      name,
-      clientName,
-      savedAt: new Date().toISOString(),
-      content,
-    };
-    savedProposals.push(newProposal);
-    safeLocalStorageSave("saved-proposals", JSON.stringify(savedProposals));
-  };
-
-  const loadProposal = (proposal: SavedProposal) => {
-    setContent(proposal.content);
-    safeLocalStorageSave("proposal-content", JSON.stringify(proposal.content));
-  };
-
-  const getSavedProposals = (): SavedProposal[] => {
-    try {
-      const saved = localStorage.getItem("saved-proposals");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const deleteProposal = (id: string) => {
-    const savedProposals = getSavedProposals().filter(p => p.id !== id);
-    safeLocalStorageSave("saved-proposals", JSON.stringify(savedProposals));
-  };
+  }, []);
 
   return (
-    <ProposalContentContext.Provider value={{ 
-      content, 
-      updateContent, 
-      isEditMode, 
-      setIsEditMode, 
+    <ProposalContentContext.Provider value={{
+      content,
+      updateContent,
+      isEditMode,
+      setIsEditMode,
       resetContent,
-      saveProposal,
-      loadProposal,
-      getSavedProposals,
-      deleteProposal,
-      readOnly: isReadOnly,
-      proposalId,
+      currentProposalUuid,
+      setCurrentProposalUuid,
+      currentProposalVersion,
+      setCurrentProposalVersion,
+      isLoading,
+      isSaving,
+      error,
+      lastSaved,
+      autoSaveEnabled,
+      setAutoSaveEnabled,
+      saveStatus,
+      loadSiteContent,
+      getContent,
     }}>
       {children}
     </ProposalContentContext.Provider>
@@ -794,5 +624,3 @@ export const useProposalContent = () => {
   }
   return context;
 };
-
-export { defaultContent };
