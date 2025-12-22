@@ -128,9 +128,9 @@ useEffect(() => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
-               {/* {isLogin
+               {isLogin
                 ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"} */}
+                : "Already have an account? Sign in"}
             </button> 
           </div>
         </CardContent>
