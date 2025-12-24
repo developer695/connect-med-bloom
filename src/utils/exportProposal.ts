@@ -299,7 +299,7 @@ const generateStaticHTML = (content: ProposalContent): string => {
             <div>${content.cover.date}</div>
           </div>
           <div class="meta" style="text-align: right;">
-            <div style="font-weight: 500;">${content.cover.company}</div>
+            <div style="font-weight: 500;">${content.cover.title}</div>
             <div>${content.cover.email}</div>
           </div>
         </div>
@@ -964,7 +964,7 @@ export const exportToPowerPoint = async (content: ProposalContent) => {
   slide1.addText(content.cover.title, { x: 0.5, y: 2.15, w: 8, h: 0.9, fontSize: 32, color: darkText, fontFace: "Calibri Light" });
   slide1.addText(content.cover.subtitle, { x: 0.5, y: 3.1, w: 7, h: 0.5, fontSize: 14, color: grayText });
   slide1.addText(`CONFIDENTIAL  •  ${content.cover.date}`, { x: 0.5, y: 4.6, w: 4, h: 0.25, fontSize: 10, color: "666666" });
-  slide1.addText(`${content.cover.company}  •  ${content.cover.email}`, { x: 5, y: 4.6, w: 4.5, h: 0.25, fontSize: 10, color: "666666", align: "right" });
+  slide1.addText(`${content.cover.subtitle}  •  ${content.cover.email}`, { x: 5, y: 4.6, w: 4.5, h: 0.25, fontSize: 10, color: "666666", align: "right" });
   addFooter(slide1, 1);
 
   // Slide 2: Letter

@@ -37,7 +37,7 @@ console.log("updateContent data waleed",content);
         <div className="max-w-3xl">
           <div className="text-sm font-semibold mb-3 text-primary tracking-wide">
             <EditableText
-  value={cover.title}
+  value={cover?.title}
   onSave={(val) => {
     console.log('✏️ STEP 1: EditableText onSave called with:', val);
     console.log('✏️ STEP 2: updateContent exists?', !!updateContent);
@@ -56,10 +56,10 @@ console.log("updateContent data waleed",content);
           </div>
           <h1 className="text-4xl md:text-6xl font-heading font-light mb-6 text-foreground leading-tight">
             <EditableText
-              value={cover.title}
+              value={cover.company}
               onSave={(val) => {
-                console.log('✏️ Updating title darta:', val);
-                updateContent("cover", { title: val });
+                console.log('✏️ Updating company:', val);
+                updateContent("cover", { company: val });
               }}
               multiline
             />
@@ -68,7 +68,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.subtitle}
               onSave={(val) => {
-                console.log('✏️ Updating subtitle:', val);
+                console.log('✏️ Updating subtitle:', val);  
                 updateContent("cover", { subtitle: val });
               }}
               multiline

@@ -573,7 +573,7 @@ const EditSidebar = () => {
                       </div>
                       <div>
                         <Label className="text-[10px] text-muted-foreground">Bio</Label>
-                        <Textarea
+                        <Textarea 
                           value={member.bio}
                           onChange={(e) => {
                             const newTeam = [...(proposal.projectTeam || [])];

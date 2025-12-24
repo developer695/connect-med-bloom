@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, UserPlus, Loader2 } from "lucide-react";
-import logoBlack from "@/assets/unifimed-logo-black.png";
+import logoBlack  from "@/assets/unifimed-logo-black.png";
 import {toast}  from "react-toastify"
 
 const Auth = () => {
