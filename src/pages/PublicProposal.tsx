@@ -23,8 +23,7 @@ const PublicProposal = () => {
         return;
       }
 
-      console.log("🔍 Fetching proposal with view_token:", viewToken);
-
+    
       try {
         // ✅ Select ALL columns from the new schema
         const { data, error: fetchError } = await supabase
@@ -35,7 +34,7 @@ const PublicProposal = () => {
           .eq("is_active", true)
           .maybeSingle();
 
-        console.log("📦 Query result:", { data, error: fetchError });
+       
 
         if (fetchError) {
           console.error("❌ Supabase error:", fetchError);
@@ -44,7 +43,7 @@ const PublicProposal = () => {
           console.warn("⚠️ No proposal found with this view_token");
           setError("Proposal not found");
         } else {
-          console.log("✅ Proposal loaded successfully");
+       
 
           // ✅ Reconstruct ProposalContent from individual columns
           const reconstructedContent: ProposalContent = {

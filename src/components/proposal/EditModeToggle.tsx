@@ -16,11 +16,14 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const EditModeToggle = () => {
   const { isEditMode, setIsEditMode} = useProposalContent();
-   const { user, isAdmin } = useAuth();
-  if (!user || !isAdmin) {
-    console.log('✅ Hiding EditModeToggle - Not authenticated or not admin');
-    return null;
-  }
+   const { user, isAdmin, isTeamMember } = useAuth();
+   console.log("isTeammember",isTeamMember);
+   
+   console.log("Isadmin",isAdmin);
+   
+if (!user || (!isAdmin && !isTeamMember)) {
+  return null;
+}
   return (
     <div className="flex items-center gap-2">
          <Button

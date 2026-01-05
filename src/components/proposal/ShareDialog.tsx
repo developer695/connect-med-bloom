@@ -18,7 +18,6 @@ const ShareDialog = () => {
 
   const generateShareLink = async () => {
     setIsGenerating(true);
-    console.log("📋 Current Proposal ID:", currentProposalUuid);
 
     try {
       if (!currentProposalUuid) {
@@ -27,8 +26,7 @@ const ShareDialog = () => {
         return;
       }
 
-      console.log("🔍 Fetching proposal with ID:", currentProposalUuid);
-      
+     
       const { data: existingProposal, error: fetchError } = await supabase
         .from("site_content")
         .select("view_token, id")
@@ -40,12 +38,12 @@ const ShareDialog = () => {
         throw fetchError;
       }
 
-      console.log("✅ Found proposal:", existingProposal);
+
 
       let viewToken = existingProposal?.view_token;
 
       if (!viewToken) {
-        console.log("🔄 No view_token found, generating new one...");
+    
         viewToken = crypto.randomUUID();
 
         const { error: updateError } = await supabase
@@ -62,9 +60,9 @@ const ShareDialog = () => {
           throw updateError;
         }
 
-        console.log("✅ View token saved:", viewToken);
+    
       } else {
-        console.log("✅ Using existing view_token:", viewToken);
+    
       }
 
       const url = `${window.location.origin}/proposal/${viewToken}`;
@@ -81,7 +79,7 @@ const ShareDialog = () => {
 
   const copyToClipboard = async () => {
     if (!shareUrl) return;
-    
+
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -103,15 +101,15 @@ const ShareDialog = () => {
         <DialogHeader>
           <DialogTitle>Share Proposal</DialogTitle>
         </DialogHeader>
-        
+
         {!shareUrl ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              {currentProposalUuid 
+              {currentProposalUuid
                 ? 'Generate a shareable link for this proposal'
                 : '⚠️ Please save the proposal first before sharing'}
             </p>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="download" className="text-sm font-medium">
@@ -123,7 +121,7 @@ const ShareDialog = () => {
                   onCheckedChange={setAllowDownload}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="expires" className="text-sm font-medium">
                   Link Expiration (Optional)
@@ -137,9 +135,9 @@ const ShareDialog = () => {
                 />
               </div>
             </div>
-            
-            <Button 
-              onClick={generateShareLink} 
+
+            <Button
+              onClick={generateShareLink}
               disabled={!currentProposalUuid || isGenerating}
               className="w-full"
             >
@@ -171,7 +169,7 @@ const ShareDialog = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Download className="w-4 h-4" />
@@ -184,7 +182,7 @@ const ShareDialog = () => {
                 </div>
               )}
             </div>
-            
+
             <Button
               variant="outline"
               onClick={() => setShareUrl("")}

@@ -436,7 +436,7 @@ export const ProposalContentProvider = ({
       setIsLoading(true);
       setError(null);
 
-      console.log('🔄 Loading site content from Supabase...');
+  
       const startTime = Date.now();
 
       const { data, error: fetchError } = await supabase
@@ -449,7 +449,7 @@ export const ProposalContentProvider = ({
         .maybeSingle();
 
       const loadTime = Date.now() - startTime;
-      console.log(`⏱️ Load time: ${loadTime}ms`);
+   
 
       if (fetchError) {
         console.error('❌ Fetch error:', fetchError);
@@ -486,7 +486,7 @@ export const ProposalContentProvider = ({
         };
 
         setContent(contentWithDates);
-        console.log('✅ Site content loaded from Supabase');
+        
       } else {
         console.warn('⚠️ No default content found, using fallback');
       }
@@ -507,7 +507,7 @@ export const ProposalContentProvider = ({
       try {
         setSaveStatus('saving');
         setIsSaving(true);
-        console.log('🔄 Auto-saving to Supabase...', uuid);
+      
 
         const newVersion = version + 1;
 
@@ -538,7 +538,7 @@ export const ProposalContentProvider = ({
           return;
         }
 
-        console.log('✅ Auto-saved successfully! Version:', newVersion);
+       
         setCurrentProposalVersion(newVersion);
         setSaveStatus('saved');
         setLastSaved(new Date());
@@ -558,14 +558,14 @@ const updateContent = useCallback(<K extends keyof ProposalContent>(
     section: K,
     data: Partial<ProposalContent[K]>
   ) => {
-    console.log('🔥 UPDATECONTENT ENTERED!', { section, data, readOnly });
+
     
     if (readOnly) {
       console.log('❌ BLOCKED: readOnly is true!');
       return;
     }
 
-    console.log('✅ PASSED readOnly check, updating state...');
+
     console.log('section ,', section, data);
     
     setContent(prev => {
@@ -574,7 +574,7 @@ const updateContent = useCallback(<K extends keyof ProposalContent>(
         ...prev,
         [section]: { ...prev[section], ...data },
       };
-      console.log('✅ New content created:', newContent[section]);
+    
       return newContent;
     });
   }, [readOnly, currentProposalUuid, currentProposalVersion, autoSaveEnabled, autoSaveToDatabase]);

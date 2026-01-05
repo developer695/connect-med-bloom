@@ -1,9 +1,11 @@
+// integrations/supabase/client.ts
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-export const supabase = createClient(
+export const supabase = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY,
   {
@@ -25,7 +27,7 @@ export async function getCurrentUserProfile() {
     .from('Users')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .select();
 
   if (error) {
     console.error('Error fetching profile:', error);

@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Briefcase, ChevronDown, ChevronRight, Package, Users, Trash2, Camera, Save, FilePlus, Archive, UserPlus } from "lucide-react";
-import { useProposalContent, Deliverable, Package as PackageType, DurationUnit, formatPrice, calculateDeliverableHours, calculateDeliverableCost, SubDeliverable } from "@/contexts/ProposalContentContext";
+import { Plus, ChevronDown, ChevronRight, Users, Trash2, Camera, Save, FilePlus, Archive, UserPlus } from "lucide-react";
+import { useProposalContent } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { uploadFileToSupabase } from "@/integrations/supabase/imageUploadData";
+import { inviteTeamMember } from "@/integrations/supabase/invite-team-member";
 
 const EditSidebar = () => {
   const {
@@ -19,48 +19,40 @@ const EditSidebar = () => {
     isEditMode,
     resetContent,
     currentProposalUuid,
-
     setCurrentProposalUuid,
     currentProposalVersion,
     setCurrentProposalVersion,
     getContent
   } = useProposalContent();
 
-  const [expandedDeliverable, setExpandedDeliverable] = useState<number | null>(null);
-  const [expandedPackage, setExpandedPackage] = useState<number | null>(null);
-  const [expandedTeamMember, setExpandedTeamMember] = useState<number | null>(null);
-  const [newSubDeliverableInputs, setNewSubDeliverableInputs] = useState<Record<number, string>>({});
-  const [showAddTeamMember, setShowAddTeamMember] = useState(false);
-  const [newTeamMember, setNewTeamMember] = useState({ name: '', title: '', bio: '', image: '' });
-  const [showAddDeliverable, setShowAddDeliverable] = useState(false);
-  const [newDeliverable, setNewDeliverable] = useState({
-    title: '',
-    description: '',
-    rate: 200,
-    hoursPerPeriod: 10,
-    duration: 4,
-    durationUnit: 'weeks' as DurationUnit,
-    subDeliverables: [] as SubDeliverable[]
-  });
-  const [newDeliverableSubInput, setNewDeliverableSubInput] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveFormData, setSaveFormData] = useState({ author: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const teamFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const newTeamFileInputRef = useRef<HTMLInputElement | null>(null);
-
   const [expandedPartner, setExpandedPartner] = useState<number | null>(null);
   const [showAddPartner, setShowAddPartner] = useState(false);
-  const [newPartner, setNewPartner] = useState({ name: '', role: '', bio: '', image: '' });
+  const [newPartner, setNewPartner] = useState({
+    name: '',
+    email: '',
+    role: 'team_member' as 'team_member' | 'admin',
+    bio: '',
+    image: ''
+  });
+  const [isInviting, setIsInviting] = useState(false);
   const partnerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newPartnerFileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ✅ Load proposal
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // ✅ Check admin role
+
+
+  // Load proposal
   const loadSingleProposal = async () => {
     setIsLoading(true);
-    // setAutoSaveEnabled(false);
     try {
       const { data, error } = await supabase
         .from("site_content")
@@ -93,10 +85,6 @@ const EditSidebar = () => {
         setCurrentProposalUuid(data.id);
         setCurrentProposalVersion(data.version);
         setSaveFormData({ author: data.author || '' });
-
-        console.log('✅ Proposal loaded!', data);
-      } else {
-        console.log('📝 No existing proposal found. Will create on first save.');
       }
     } catch (error) {
       console.error('❌ Error loading proposal:', error);
@@ -105,31 +93,20 @@ const EditSidebar = () => {
     }
   };
 
-  // ✅ MANUAL SAVE ONLY - No Auto-Save
+  useEffect(() => {
+    loadSingleProposal();
+  }, []);
+
   const handleSaveProposal = async () => {
     if (!saveFormData.author.trim()) {
-      alert('Please enter author name');
+      toast.error('Please enter author name');
       return;
     }
-
-    const currentContent = getContent();
-
-    console.log('🔍 === SAVE DEBUG START ===');
-    console.log('📊 From getContent():', currentContent);
-    console.log('📊 From context.content:', content);
-    console.log('📊 Are they equal?', currentContent === content);
-    console.log('📊 Cover from getContent():', currentContent.cover);
-    console.log('📊 Cover from content:', content.cover);
-    console.log('📊 Proposal from getContent():', currentContent.proposal);
-    console.log('📊 Proposal from content:', content.proposal);
-    console.log('🔍 === SAVE DEBUG END ===');
 
     setIsSaving(true);
     try {
       const currentContent = getContent();
-      console.log('💾 Saving content to database...', currentContent);
 
-      // ✅ Check for existing proposal
       const { data: existing, error: checkError } = await supabase
         .from("site_content")
         .select("*")
@@ -139,20 +116,15 @@ const EditSidebar = () => {
         .limit(1)
         .maybeSingle();
 
-      console.log('📊 Existing proposal:', existing);
-
       if (checkError) {
         console.error('❌ Error checking existing proposal:', checkError);
-        alert(`Error: ${checkError.message}`);
+        toast.error(`Error: ${checkError.message}`);
         return;
       }
 
       if (existing) {
-        console.log('📝 Updating proposal ID:', existing.id, 'Current version:', existing.version);
         const newVersion = existing.version + 1;
 
-
-        // ✅ UPDATE - Return data to verify it worked
         const { data: updateResult, error: updateError } = await supabase
           .from("site_content")
           .update({
@@ -175,33 +147,23 @@ const EditSidebar = () => {
           .eq("id", existing.id)
           .select('id, version, updated_at');
 
-        console.log('📤 Update result:', { data: updateResult, error: updateError });
-
         if (updateError) {
           console.error('❌ Failed to update:', updateError);
-          alert(`Failed to update: ${updateError.message}`);
+          toast.error(`Failed to update: ${updateError.message}`);
           return;
         }
 
-        // ✅ Verify data was returned
         if (!updateResult || updateResult.length === 0) {
           console.error('⚠️ Update returned no data - RLS may be blocking');
-          alert('Warning: Update may have failed due to permissions. Please refresh and check if changes saved.');
+          toast.error('Warning: Update may have failed due to permissions.');
           return;
         }
-
-        console.log('✅ Update successful! New data:', updateResult[0]);
 
         setCurrentProposalUuid(existing.id);
         setCurrentProposalVersion(newVersion);
-
-        // ✅ Force reload to verify changes
-        // await loadSingleProposal();
-
         toast.success(`Proposal updated successfully! (Version ${newVersion})`);
 
       } else {
-        console.log('📝 Creating new proposal...');
         const viewToken = crypto.randomUUID();
 
         const { data: insertData, error: insertError } = await supabase
@@ -230,31 +192,25 @@ const EditSidebar = () => {
 
         if (insertError) {
           console.error('❌ Failed to insert:', insertError);
-          alert(`Failed to save: ${insertError.message}`);
+          toast.error(`Failed to save: ${insertError.message}`);
           return;
         }
-
-        console.log('✅ Insert successful:', insertData);
 
         if (insertData) {
           setCurrentProposalUuid(insertData.id);
           setCurrentProposalVersion(insertData.version);
-          alert('Proposal saved successfully!');
+          toast.success('Proposal saved successfully!');
         }
       }
 
       setShowSaveDialog(false);
     } catch (error) {
       console.error('❌ Error saving proposal:', error);
-      alert('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
   };
-
-  useEffect(() => {
-    loadSingleProposal();
-  }, []);
 
   const handleNewProposal = () => {
     if (confirm('Reset proposal content? This will clear all data.')) {
@@ -263,53 +219,162 @@ const EditSidebar = () => {
     }
   };
 
-  const handleTeamImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePartnerImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newTeam = [...(proposal.projectTeam || [])];
-        newTeam[index] = { ...newTeam[index], image: reader.result as string };
-        updateContent("proposal", { projectTeam: newTeam });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    const url = await uploadFileToSupabase(file, 'partners');
+    if (!url) return;
+
+    const newMembers = [...(content.team.members || [])];
+    newMembers[index] = { ...newMembers[index], image: url };
+    updateContent("team", { members: newMembers });
+  };
+
+  const handleNewPartnerImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const url = await uploadFileToSupabase(file, 'partners');
+    if (!url) return;
+
+    setNewPartner(prev => ({ ...prev, image: url }));
+  };
+  console.log("newPartner dataa", newPartner);
+  const getAdminRole = async () => {
+    setIsLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.log("⚠️ No authenticated user");
+        setIsAdmin(false);
+        setCurrentUserId(null);
+        return;
+      }
+
+      setCurrentUserId(user.id);
+      console.log("✅ Current user ID:", user.id);
+
+      // ✅ Query the correct table name (Users or profiles)
+      const { data, error } = await supabase
+        .from("Users") 
+        .select("role")
+        .eq("user_id", user.id)
+
+      if (error) {
+        console.error("❌ Error fetching role:", error);
+        setIsAdmin(false);
+        return;
+      }
+      console.log("✅ Current user role:", data);
+      setIsAdmin(data[0]?.role ===  "admin");
+
+    } catch (error) {
+      console.error("❌ Error loading admin role:", error);
+      setIsAdmin(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleNewTeamImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewTeamMember(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  useEffect(() => {
+    getAdminRole();
+  }, []);
+  console.log("is admin", isAdmin);
 
-  const handlePartnerImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newMembers = [...(content.team.members || [])];
-        newMembers[index] = { ...newMembers[index], image: reader.result as string };
-        updateContent("team", { members: newMembers });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+// Updated handleInvitePartner function
+// Replace your existing function with this one
 
-  const handleNewPartnerImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewPartner(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+const handleInvitePartner = async () => {
+  // Validate form fields
+  if (!newPartner.name.trim() || !newPartner.email.trim()) {
+    toast.error("Name and email are required");
+    return;
+  }
+
+  if (!newPartner.role) {
+    toast.error("Please select a role");
+    return;
+  }
+
+  console.log('is admin ', isAdmin);
+
+  // Check if current user is admin
+  if (!isAdmin) {
+    toast.error("Only admins can invite team members");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newPartner.email)) {
+    toast.error("Please enter a valid email address");
+    return;
+  }
+
+  setIsInviting(true);
+
+  try {
+    // ✅ Include bio and image in payload
+    const payload = {
+      email: newPartner.email.trim().toLowerCase(),
+      role: newPartner.role,
+      name: newPartner.name.trim(),
+      bio: newPartner.bio?.trim() || undefined,    // Include bio
+      image: newPartner.image || undefined,         // Include image URL
+    };
+
+    console.log("🔍 INVITE PAYLOAD:", payload);
+
+    const result = await inviteTeamMember(payload);
+
+    console.log("✅ Invitation result:", result);
+
+    // Add to local team members list (for UI)
+    const newMembers = [
+      ...(content.team.members || []),
+      {
+        name: newPartner.name,
+        email: newPartner.email,
+        role: newPartner.role,
+        bio: newPartner.bio,
+        image: newPartner.image,
+      },
+    ];
+
+    updateContent("team", { members: newMembers });
+
+    toast.success(`🎉 Invitation sent to ${newPartner.email}!`);
+
+    // Reset form
+    setNewPartner({
+      name: "",
+      email: "",
+      role: "team_member",
+      bio: "",
+      image: "",
+    });
+
+    setShowAddPartner(false);
+
+  } catch (error: any) {
+    console.error("❌ Invite error:", error);
+
+    // Specific error messages
+    if (error.message.includes("already exists") || error.message.includes("already registered")) {
+      toast.error("This email is already registered");
+    } else if (error.message.includes("already sent")) {
+      toast.error("Invitation already sent to this email");
+    } else if (error.message.includes("Invalid email")) {
+      toast.error("Please provide a valid email address");
+    } else {
+      toast.error(error.message || "Failed to send invitation");
     }
-  };
+  } finally {
+    setIsInviting(false);
+  }
+};
 
   const addPartnerToProjectTeam = (partner: { name: string; role: string; bio: string; image?: string }) => {
     const projectTeamMember = {
@@ -320,122 +385,12 @@ const EditSidebar = () => {
     };
     const newProjectTeam = [...(content.proposal.projectTeam || []), projectTeamMember];
     updateContent("proposal", { projectTeam: newProjectTeam });
+    toast.success(`${partner.name} added to project team`);
   };
 
   if (!isEditMode) return null;
 
   const { proposal, value, team } = content;
-
-  const updateDeliverableRate = (index: number, rate: number) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], rate };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updateDeliverableHoursPerPeriod = (index: number, hoursPerPeriod: number) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], hoursPerPeriod };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updateDeliverableDuration = (index: number, duration: number) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], duration };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updateDeliverableDurationUnit = (index: number, durationUnit: DurationUnit) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], durationUnit };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updateDeliverableTitle = (index: number, title: string) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], title };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updateDeliverableDescription = (index: number, description: string) => {
-    const newDeliverables = [...proposal.deliverables];
-    newDeliverables[index] = { ...newDeliverables[index], description };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const toggleSubDeliverable = (deliverableIndex: number, subIndex: number) => {
-    const newDeliverables = [...proposal.deliverables];
-    const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables];
-    newSubDeliverables[subIndex] = {
-      ...newSubDeliverables[subIndex],
-      included: !newSubDeliverables[subIndex].included
-    };
-    newDeliverables[deliverableIndex] = {
-      ...newDeliverables[deliverableIndex],
-      subDeliverables: newSubDeliverables
-    };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const addSubDeliverable = (deliverableIndex: number, name: string) => {
-    const newDeliverables = [...proposal.deliverables];
-    const newSubDeliverables = [...newDeliverables[deliverableIndex].subDeliverables, { name, included: true }];
-    newDeliverables[deliverableIndex] = {
-      ...newDeliverables[deliverableIndex],
-      subDeliverables: newSubDeliverables
-    };
-    updateContent("proposal", { deliverables: newDeliverables });
-  };
-
-  const updatePackageHoursPerWeek = (index: number, hoursPerWeek: number) => {
-    const newPackages = [...proposal.packages];
-    newPackages[index] = { ...newPackages[index], hoursPerWeek };
-    updateContent("proposal", { packages: newPackages });
-  };
-
-  const updatePackageDurationWeeks = (index: number, durationWeeks: number) => {
-    const newPackages = [...proposal.packages];
-    newPackages[index] = { ...newPackages[index], durationWeeks };
-    updateContent("proposal", { packages: newPackages });
-  };
-
-  const togglePackageAutoCalculate = (index: number) => {
-    const newPackages = [...proposal.packages];
-    newPackages[index] = {
-      ...newPackages[index],
-      autoCalculate: !newPackages[index].autoCalculate
-    };
-    updateContent("proposal", { packages: newPackages });
-  };
-
-  const handleAddDeliverable = (item: Deliverable) => {
-    const newDeliverables = [...proposal.deliverables, item];
-    const newHidden = (proposal.hiddenDeliverables || []).filter(d => d.title !== item.title);
-    updateContent("proposal", { deliverables: newDeliverables, hiddenDeliverables: newHidden });
-  };
-
-  const handleAddPackage = (item: PackageType) => {
-    const newPackages = [...proposal.packages, item];
-    const newHidden = (proposal.hiddenPackages || []).filter(p => p.name !== item.name);
-    updateContent("proposal", { packages: newPackages, hiddenPackages: newHidden });
-  };
-
-  const handleAddPillar = (item: { title: string; description: string }) => {
-    const newPillars = [...value.pillars, item];
-    const newHidden = ((value as any).hiddenPillars || []).filter((p: any) => p.title !== item.title);
-    updateContent("value", { pillars: newPillars, hiddenPillars: newHidden } as any);
-  };
-
-  const handleAddDifferentiator = (item: { title: string; description: string }) => {
-    const newDiffs = [...value.differentiators, item];
-    const newHidden = ((value as any).hiddenDifferentiators || []).filter((d: any) => d.title !== item.title);
-    updateContent("value", { differentiators: newDiffs, hiddenDifferentiators: newHidden } as any);
-  };
-
-  const hasHiddenItems =
-    (proposal.hiddenDeliverables?.length || 0) > 0 ||
-    (proposal.hiddenPackages?.length || 0) > 0 ||
-    (value.hiddenPillars?.length || 0) > 0 ||
-    (value.hiddenDifferentiators?.length || 0) > 0;
 
   return (
     <div className="w-72 bg-muted/50 border-l border-border flex flex-col h-full">
@@ -443,7 +398,7 @@ const EditSidebar = () => {
         <h3 className="font-semibold text-sm text-foreground">Proposal Settings</h3>
         <p className="text-xs text-muted-foreground mt-1">
           {currentProposalUuid
-            ? `Editing • Version ${currentProposalVersion}`
+            ? `Editing • Version ${currentProposalVersion}${isAdmin ? ' • Admin' : ' Team Member'}`
             : 'Configure deliverables and pricing'}
         </p>
 
@@ -511,197 +466,9 @@ const EditSidebar = () => {
         </div>
       )}
 
-
-
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
-          {/* Project Team Section */}
-          <div>
-            <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Project Team
-            </h4>
-            <div className="space-y-2">
-              {proposal.projectTeam?.map((member, index) => (
-                <Collapsible
-                  key={`team-${index}`}
-                  open={expandedTeamMember === index}
-                  onOpenChange={(open) => setExpandedTeamMember(open ? index : null)}
-                >
-                  <CollapsibleTrigger className="w-full">
-                    <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold text-primary">
-                          {member.name.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <span className="text-xs font-medium text-foreground truncate">
-                          {member.name}
-                        </span>
-                      </div>
-                      {expandedTeamMember === index ? (
-                        <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                      ) : (
-                        <ChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                      )}
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Name</Label>
-                        <Input
-                          value={member.name}
-                          onChange={(e) => {
-                            const newTeam = [...(proposal.projectTeam || [])];
-                            newTeam[index] = { ...newTeam[index], name: e.target.value };
-                            updateContent("proposal", { projectTeam: newTeam });
-                          }}
-                          className="h-7 text-xs mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Title</Label>
-                        <Input
-                          value={member.title}
-                          onChange={(e) => {
-                            const newTeam = [...(proposal.projectTeam || [])];
-                            newTeam[index] = { ...newTeam[index], title: e.target.value };
-                            updateContent("proposal", { projectTeam: newTeam });
-                          }}
-                          className="h-7 text-xs mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Bio</Label>
-                        <Textarea 
-                          value={member.bio}
-                          onChange={(e) => {
-                            const newTeam = [...(proposal.projectTeam || [])];
-                            newTeam[index] = { ...newTeam[index], bio: e.target.value };
-                            updateContent("proposal", { projectTeam: newTeam });
-                          }}
-                          className="text-xs min-h-[50px] mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Photo</Label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          ref={(el) => (teamFileInputRefs.current[index] = el)}
-                          onChange={(e) => handleTeamImageUpload(index, e)}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => teamFileInputRefs.current[index]?.click()}
-                          className="w-full mt-1 h-16 rounded-md border border-dashed border-border/50 flex flex-col items-center justify-center gap-1 hover:bg-muted/30 transition-colors overflow-hidden"
-                        >
-                          {member.image ? (
-                            <img src={member.image} alt={member.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <>
-                              <Camera className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Upload photo</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newTeam = proposal.projectTeam?.filter((_, i) => i !== index) || [];
-                          updateContent("proposal", { projectTeam: newTeam });
-                          setExpandedTeamMember(null);
-                        }}
-                        className="w-full h-7 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Remove Team Member
-                      </button>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              ))}
-
-              {showAddTeamMember ? (
-                <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
-                  <Input
-                    value={newTeamMember.name}
-                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Name..."
-                    className="h-7 text-xs"
-                  />
-                  <Input
-                    value={newTeamMember.title}
-                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Title..."
-                    className="h-7 text-xs"
-                  />
-                  <Textarea
-                    value={newTeamMember.bio}
-                    onChange={(e) => setNewTeamMember(prev => ({ ...prev, bio: e.target.value }))}
-                    placeholder="Brief bio..."
-                    className="text-xs min-h-[40px]"
-                  />
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={newTeamFileInputRef}
-                      onChange={handleNewTeamImageUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => newTeamFileInputRef.current?.click()}
-                      className="w-full h-12 rounded-md border border-dashed border-border/50 flex items-center justify-center gap-2 hover:bg-muted/30 transition-colors overflow-hidden"
-                    >
-                      {newTeamMember.image ? (
-                        <img src={newTeamMember.image} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <>
-                          <Camera className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">Upload photo</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (newTeamMember.name.trim()) {
-                          const newTeam = [...(proposal.projectTeam || []), newTeamMember];
-                          updateContent("proposal", { projectTeam: newTeam });
-                          setNewTeamMember({ name: '', title: '', bio: '', image: '' });
-                          setShowAddTeamMember(false);
-                        }
-                      }}
-                      className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNewTeamMember({ name: '', title: '', bio: '', image: '' });
-                        setShowAddTeamMember(false);
-                      }}
-                      className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddTeamMember(true)}
-                  className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Team Member
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Partners Section */}
+      
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -735,171 +502,157 @@ const EditSidebar = () => {
                       )}
                     </div>
                   </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="mt-2 p-3 rounded-md bg-background border border-border/50 space-y-3">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Name</Label>
-                        <Input
-                          value={partner.name}
-                          onChange={(e) => {
-                            const newMembers = [...(team.members || [])];
-                            newMembers[index] = { ...newMembers[index], name: e.target.value };
-                            updateContent("team", { members: newMembers });
-                          }}
-                          className="h-7 text-xs mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Role</Label>
-                        <Input
-                          value={partner.role}
-                          onChange={(e) => {
-                            const newMembers = [...(team.members || [])];
-                            newMembers[index] = { ...newMembers[index], role: e.target.value };
-                            updateContent("team", { members: newMembers });
-                          }}
-                          className="h-7 text-xs mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Bio</Label>
-                        <Textarea
-                          value={partner.bio}
-                          onChange={(e) => {
-                            const newMembers = [...(team.members || [])];
-                            newMembers[index] = { ...newMembers[index], bio: e.target.value };
-                            updateContent("team", { members: newMembers });
-                          }}
-                          className="text-xs min-h-[50px] mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Photo</Label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          ref={(el) => (partnerFileInputRefs.current[index] = el)}
-                          onChange={(e) => handlePartnerImageUpload(index, e)}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => partnerFileInputRefs.current[index]?.click()}
-                          className="w-full mt-1 h-16 rounded-md border border-dashed border-border/50 flex flex-col items-center justify-center gap-1 hover:bg-muted/30 transition-colors overflow-hidden"
-                        >
-                          {partner.image ? (
-                            <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <>
-                              <Camera className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Upload photo</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => addPartnerToProjectTeam(partner)}
-                        className="w-full h-7 text-[10px] bg-primary/10 text-primary border border-primary/30 rounded hover:bg-primary/20 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <UserPlus className="w-3 h-3" />
-                        Add to Project Team
-                      </button>
-                      <button
-                        onClick={() => {
-                          const newMembers = team.members?.filter((_, i) => i !== index) || [];
-                          updateContent("team", { members: newMembers });
-                          setExpandedPartner(null);
-                        }}
-                        className="w-full h-7 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Remove Partner
-                      </button>
-                    </div>
-                  </CollapsibleContent>
                 </Collapsible>
               ))}
 
-              {showAddPartner ? (
-                <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
-                  <Input
-                    value={newPartner.name}
-                    onChange={(e) => setNewPartner(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Name..."
-                    className="h-7 text-xs"
-                  />
-                  <Input
-                    value={newPartner.role}
-                    onChange={(e) => setNewPartner(prev => ({ ...prev, role: e.target.value }))}
-                    placeholder="Role/Title..."
-                    className="h-7 text-xs"
-                  />
-                  <Textarea
-                    value={newPartner.bio}
-                    onChange={(e) => setNewPartner(prev => ({ ...prev, bio: e.target.value }))}
-                    placeholder="Brief bio..."
-                    className="text-xs min-h-[40px]"
-                  />
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={newPartnerFileInputRef}
-                      onChange={handleNewPartnerImageUpload}
-                      className="hidden"
+            
+              <div>
+                {showAddPartner ? (
+                  <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
+                    <Input
+                      value={newPartner.name}
+                      onChange={(e) => setNewPartner(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Full name..."
+                      className="h-7 text-xs"
+                      disabled={isInviting}
                     />
-                    <button
-                      onClick={() => newPartnerFileInputRef.current?.click()}
-                      className="w-full h-12 rounded-md border border-dashed border-border/50 flex items-center justify-center gap-2 hover:bg-muted/30 transition-colors overflow-hidden"
-                    >
-                      {newPartner.image ? (
-                        <img src={newPartner.image} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <>
-                          <Camera className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">Upload photo</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (newPartner.name.trim()) {
-                          const newMembers = [...(team.members || []), newPartner];
-                          updateContent("team", { members: newMembers });
-                          setNewPartner({ name: '', role: '', bio: '', image: '' });
-                          setShowAddPartner(false);
+
+                    <Input
+                      type="email"
+                      value={newPartner.email}
+                      onChange={(e) => setNewPartner(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Email address..."
+                      className="h-7 text-xs"
+                      disabled={isInviting}
+                    />
+
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-1 block">
+                        Account Role
+                      </Label>
+                      <Select
+                        value={newPartner.role}
+                        onValueChange={(val: 'team_member' | 'admin') =>
+                          setNewPartner(prev => ({ ...prev, role: val }))
                         }
-                      }}
-                      className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
-                    >
-                      Add
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNewPartner({ name: '', role: '', bio: '', image: '' });
-                        setShowAddPartner(false);
-                      }}
-                      className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                        disabled={isInviting}
+                      >
+                        <SelectTrigger className="h-7 text-xs">
+                          <SelectValue placeholder="Select role..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="team_member">Team Member</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Textarea
+                      value={newPartner.bio}
+                      onChange={(e) => setNewPartner(prev => ({ ...prev, bio: e.target.value }))}
+                      placeholder="Brief bio (optional)..."
+                      className="text-xs min-h-[40px]"
+                      disabled={isInviting}
+                    />
+
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground mb-1 block">
+                        Photo (Optional)
+                      </Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={newPartnerFileInputRef}
+                        onChange={handleNewPartnerImageUpload}
+                        className="hidden"
+                        disabled={isInviting}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => newPartnerFileInputRef.current?.click()}
+                        disabled={isInviting}
+                        className="w-full h-12 rounded-md border border-dashed border-border/50 flex items-center justify-center gap-2 hover:bg-muted/30 transition-colors overflow-hidden disabled:opacity-50"
+                      >
+                        {newPartner.image ? (
+                          <img
+                            src={newPartner.image}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <Camera className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">
+                              Upload photo
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleInvitePartner}
+                        disabled={isInviting}
+                        className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                      >
+                        {isInviting ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-3 h-3" />
+                            Invite User
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewPartner({ name: '', email: '', role: 'team_member', bio: '', image: '' });
+                          setShowAddPartner(false);
+                        }}
+                        disabled={isInviting}
+                        className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowAddPartner(true)}
-                  className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Partner
-                </button>
-              )}
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isAdmin) {
+                        toast.error("Only admins can invite team members");
+                        return;
+                      }
+                      setShowAddPartner(true);
+                    }}
+                    disabled={!isAdmin}
+                    className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-3 h-3" />
+                    {isAdmin ? 'Add Partner' : 'Admin Only'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+};
 
-          {/* Key Deliverables Section */}
-          <div>
+export default EditSidebar;
+
+{/* Key Deliverables Section */ }
+{/* <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Briefcase className="w-3 h-3" />
               Key Deliverables
@@ -1256,10 +1009,10 @@ const EditSidebar = () => {
                 );
               })}
             </div>
-          </div>
+          </div> */}
 
-          {/* Engagement Packages Section */}
-          <div>
+{/* Engagement Packages Section */ }
+{/* <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Package className="w-3 h-3" />
               Engagement Packages
@@ -1360,103 +1113,4 @@ const EditSidebar = () => {
                 </Collapsible>
               ))}
             </div>
-          </div>
-
-          {hasHiddenItems && (
-            <>
-              <div className="border-t border-border pt-4">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                  Available Items
-                </h4>
-                <p className="text-[10px] text-muted-foreground mb-3">Click to add back</p>
-              </div>
-
-              {(proposal.hiddenDeliverables?.length || 0) > 0 && (
-                <div>
-                  <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Deliverables</h5>
-                  <div className="space-y-1">
-                    {proposal.hiddenDeliverables?.map((item, index) => (
-                      <button
-                        key={`del-${index}`}
-                        onClick={() => handleAddDeliverable(item)}
-                        className="w-full text-left p-2 rounded-md bg-background hover:bg-primary/10 border border-border/50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-xs font-medium text-foreground truncate">{item.title}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(proposal.hiddenPackages?.length || 0) > 0 && (
-                <div>
-                  <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Packages</h5>
-                  <div className="space-y-1">
-                    {proposal.hiddenPackages?.map((item, index) => (
-                      <button
-                        key={`pkg-${index}`}
-                        onClick={() => handleAddPackage(item)}
-                        className="w-full text-left p-2 rounded-md bg-background hover:bg-primary/10 border border-border/50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-xs font-medium text-foreground">{item.name}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground ml-5">{item.price}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {((value as any).hiddenPillars?.length || 0) > 0 && (
-                <div>
-                  <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Value Pillars</h5>
-                  <div className="space-y-1">
-                    {(value as any).hiddenPillars?.map((item: any, index: number) => (
-                      <button
-                        key={`pil-${index}`}
-                        onClick={() => handleAddPillar(item)}
-                        className="w-full text-left p-2 rounded-md bg-background hover:bg-primary/10 border border-border/50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-xs font-medium text-foreground">{item.title}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {((value as any).hiddenDifferentiators?.length || 0) > 0 && (
-                <div>
-                  <h5 className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase">Differentiators</h5>
-                  <div className="space-y-1">
-                    {(value as any).hiddenDifferentiators?.map((item: any, index: number) => (
-                      <button
-                        key={`diff-${index}`}
-                        onClick={() => handleAddDifferentiator(item)}
-                        className="w-full text-left p-2 rounded-md bg-background hover:bg-primary/10 border border-border/50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-3 h-3 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-xs font-medium text-foreground truncate">{item.title}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-};
-
-export default EditSidebar;
+          </div> */}

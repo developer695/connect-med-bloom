@@ -174,7 +174,7 @@ const ProposalViewerContent = ({ content }: { content: ProposalContent }) => {
 
 const ProposalViewer = () => {
   const { shareId } = useParams<{ shareId: string }>();
-  console.log("shareId",shareId);
+
   
   const navigate = useNavigate();
   const [content, setContent] = useState<ProposalContent | null>(null);

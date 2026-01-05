@@ -12,6 +12,10 @@ import PublicProposal from "./pages/PublicProposal";
 import ProposalViewer from "./pages/ProposalViewer";
 import NotFound from "./pages/NotFound";
 import { ToastContainer } from 'react-toastify';
+import AuthCallback from "./pages/AuthCallback";
+import AcceptInvitation from "./components/proposal/pages/AcceptInvitation";
+
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -21,19 +25,45 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-         <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-      />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
           <Routes>
-            {/* ✅ Protected Editor Route - Full editing capabilities */}
+            {/* ✅ Accept Invitation - NO AUTH REQUIRED (must be before protected routes) */}
+            <Route path="/accept-invitation" element={<AcceptInvitation/>} />
+            
+            {/* ✅ Auth Pages */}
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            
+            {/* ✅ Public View Routes - Read-only */}
+            <Route 
+              path="/proposal/:viewToken" 
+              element={
+                <ProposalContentProvider readOnly={true}>
+                  <PublicProposal />
+                </ProposalContentProvider>
+              } 
+            />
+            
+            <Route 
+              path="/view/:shareId" 
+              element={
+                <ProposalContentProvider readOnly={true}>
+                  <ProposalViewer />
+                </ProposalContentProvider>
+              } 
+            />
+            
+            {/* ✅ Protected Editor Route */}
             <Route 
               path="/" 
               element={
@@ -45,41 +75,7 @@ const App = () => (
               } 
             />
             
-            {/* ✅ Auth Page */}
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* ✅ Public View Routes - Read-only, no edit controls */}
-            <Route 
-  path="/proposal/:viewToken" 
-  element={
-    <ProposalContentProvider readOnly={true}>
-      <PublicProposal />
-    </ProposalContentProvider>
-  } 
-/>
-            
-            <Route 
-  path="/view/:shareId" 
-  element={
-    <ProposalContentProvider readOnly={true}>
-      <ProposalViewer />
-    </ProposalContentProvider>
-  } 
-/>
-            
-            {/* ✅ Protected Edit Route for specific proposal */}
-           <Route 
-  path="/" 
-  element={
-    <ProtectedRoute>
-      <ProposalContentProvider readOnly={false}>
-        <Index />
-      </ProposalContentProvider>
-    </ProtectedRoute>
-  } 
-/>
-            
-            {/* ✅ 404 Catch-all - Must be last! */}
+            {/* ✅ 404 Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -9,11 +9,11 @@ import { useEffect } from "react";
 const CoverPage = () => {
   const { content, updateContent } = useProposalContent();
   const { cover } = content;
-console.log("updateContent data waleed",content);
+
 
   // ✅ Log whenever cover state changes
   useEffect(() => {
-    console.log('📄 CoverPage - Current cover state:', cover);
+  
   }, [cover]);
 
   return (
@@ -39,14 +39,12 @@ console.log("updateContent data waleed",content);
             <EditableText
   value={cover?.title}
   onSave={(val) => {
-    console.log('✏️ STEP 1: EditableText onSave called with:', val);
-    console.log('✏️ STEP 2: updateContent exists?', !!updateContent);
-    console.log('✏️ STEP 3: updateContent type:', typeof updateContent);
+   
     
     try {
-      console.log('✏️ STEP 4: Calling updateContent NOW...');
+ 
       updateContent("cover", { title: val });
-      console.log('✏️ STEP 5: updateContent called successfully!');
+  
     } catch (error) {
       console.error('❌ ERROR calling updateContent:', error);
     }
@@ -58,7 +56,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.company}
               onSave={(val) => {
-                console.log('✏️ Updating company:', val);
+             
                 updateContent("cover", { company: val });
               }}
               multiline
@@ -68,7 +66,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.subtitle}
               onSave={(val) => {
-                console.log('✏️ Updating subtitle:', val);  
+              
                 updateContent("cover", { subtitle: val });
               }}
               multiline
@@ -85,7 +83,7 @@ console.log("updateContent data waleed",content);
               id="client-logo"
               image={cover.clientLogo}
               onImageChange={(base64) => {
-                console.log('✏️ Updating client logo');
+     
                 updateContent("cover", { clientLogo: base64 });
               }}
               defaultConfig={{ x: 0, y: 0, width: 180, height: 80 }}
@@ -107,7 +105,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.date}
               onSave={(val) => {
-                console.log('✏️ Updating date:', val);
+              
                 updateContent("cover", { date: val });
               }}
             />
@@ -118,7 +116,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.company}
               onSave={(val) => {
-                console.log('✏️ Updating company:', val);
+             
                 updateContent("cover", { company: val });
               }}
             />
@@ -127,7 +125,7 @@ console.log("updateContent data waleed",content);
             <EditableText
               value={cover.email}
               onSave={(val) => {
-                console.log('✏️ Updating email:', val);
+              
                 updateContent("cover", { email: val });
               }}
             />

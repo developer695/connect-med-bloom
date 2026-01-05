@@ -1,3 +1,5 @@
+// src/contexts/AuthContext.tsx
+
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,9 +8,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isTeamMember: boolean;
+  canEdit: boolean;
+  userRole: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; data?: any }>;
+  signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -18,51 +23,88 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTeamMember, setIsTeamMember] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
-  const checkAdminRole = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("Users")
-      .select("email")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
+  // ✅ canEdit is true for BOTH admin AND team_member
+  const canEdit = isAdmin || isTeamMember;
 
-    if (error) {
-      console.error("Error checking admin role:", error);
-      return false;
+  const fetchUserRole = async (userId: string) => {
+    try {
+      console.log('🔍 Fetching role for user:', userId);
+
+      // Check profiles table (uses 'id' column)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileData) {
+        const role = profileData.role;
+        console.log('✅ Role from profiles:', role);
+        setUserRole(role);
+        setIsAdmin(role === 'admin');
+        setIsTeamMember(role === 'team_member');
+        return;
+      }
+
+      // Fallback: check Users table (uses 'user_id' column)
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (userData) {
+        const role = userData.role;
+        console.log('✅ Role from Users:', role);
+        setUserRole(role);
+        setIsAdmin(role === 'admin');
+        setIsTeamMember(role === 'team_member');
+        return;
+      }
+
+      console.log('⚠️ No role found');
+      setUserRole(null);
+      setIsAdmin(false);
+      setIsTeamMember(false);
+
+    } catch (error) {
+      console.error('❌ Error fetching role:', error);
+      setIsAdmin(false);
+      setIsTeamMember(false);
+      setUserRole(null);
     }
-    return !!data;
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer admin check with setTimeout
         if (session?.user) {
           setTimeout(() => {
-            checkAdminRole(session.user.id).then(setIsAdmin);
+            fetchUserRole(session.user.id).then(() => setIsLoading(false));
           }, 0);
         } else {
           setIsAdmin(false);
+          setIsTeamMember(false);
+          setUserRole(null);
+          setIsLoading(false);
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        checkAdminRole(session.user.id).then((isAdmin) => {
-          setIsAdmin(isAdmin);
-          setIsLoading(false);
-        });
+        fetchUserRole(session.user.id).then(() => setIsLoading(false));
       } else {
         setIsLoading(false);
       }
@@ -72,65 +114,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error };
+    return { data, error: null };
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    if (isSigningUp) return { error: { message: 'Already processing...' } };
+    setIsSigningUp(true);
 
-    // 1️⃣ Sign up the user in Supabase Auth
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
-    });
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) return { error: signUpError };
 
-    if (signUpError) {
-      return { error: signUpError };
-    }
-
-    // 2️⃣ Insert the user into the Users table
-    if (data.user) {
-      const { error: dbError } = await supabase.from("Users").insert([
-        {
+      if (data.user) {
+        await supabase.from("profiles").insert([{
           user_id: data.user.id,
           email: data.user.email,
-          role: "user", // default role 
-        },
-      ]);
-
-      if (dbError) {
-        console.error("Error inserting user into Users table:", dbError);
-        return { error: dbError };
+          role: 'team_member ||',
+        }]);
       }
+      return { error: null };
+    } finally {
+      setIsSigningUp(false);
     }
-
-    return { error: null };
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setIsAdmin(false);
+    setIsTeamMember(false);
+    setUserRole(null);
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        isAdmin,
-        isLoading,
-        signIn,
-        signUp,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={{
+      user,
+      session,
+      isAdmin,
+      isTeamMember,
+      canEdit,
+      userRole,
+      isLoading,
+      signIn,
+      signUp,
+      signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -138,8 +167,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };

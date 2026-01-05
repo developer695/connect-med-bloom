@@ -5,9 +5,10 @@ import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireAdmin?: boolean; // Optional: only require admin for specific routes
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
   const { user, loading, isAdmin } = useAuth();
 
   if (loading) {
@@ -18,8 +19,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user || !isAdmin) {
+  // Check if user is logged in
+  if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Only check admin if requireAdmin is true
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/unauthorized" replace />; // Or show a message
   }
 
   return <>{children}</>;

@@ -1,3 +1,5 @@
+// src/components/proposal/UnifiMedProposal.tsx
+
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,7 +40,9 @@ const pages = [
 
 const UnifiMedProposal = () => {
   const { isEditMode, readOnly, isLoading } = useProposalContent();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, canEdit, signOut } = useAuth(); 
+  console.log("canIsadmit",canEdit);
+  
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -67,7 +71,6 @@ const UnifiMedProposal = () => {
     navigate("/auth");
   };
 
-  // Show loading state while fetching content from database
   if (isLoading) {
     return (
       <div className="w-full min-h-screen bg-background flex items-center justify-center">
@@ -97,9 +100,7 @@ const UnifiMedProposal = () => {
 
   return (
     <div className="w-full min-h-screen bg-background flex flex-col">
-      {/* Main content area with optional sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Document area */}
         <div className="flex-1 relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center p-2 md:p-4">
             <div id="proposal-content" className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
@@ -124,16 +125,13 @@ const UnifiMedProposal = () => {
           </div>
         </div>
         
-        {/* ✅ Edit sidebar - only for authenticated admins */}
-        {isEditMode && !readOnly && user && isAdmin && <EditSidebar />}
+        {/* ✅ Edit sidebar - for BOTH admin AND team_member */}
+        {isEditMode && !readOnly && user && canEdit && <EditSidebar />}
       </div>
 
-      {/* Navigation bar */}
       <div className="bg-card border-t border-border px-4 md:px-8 py-3 md:py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Previous/Next buttons */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* ✅ Always show Previous/Next buttons for everyone */}
             <Button
               variant="outline"
               size="sm"
@@ -154,8 +152,8 @@ const UnifiMedProposal = () => {
               <ChevronRight className="w-4 h-4" />
             </Button>
             
-            {/* ✅ Only show these for authenticated admins (NOT public users) */}
-            {!readOnly && user && isAdmin && (
+            {/* ✅ Show for BOTH admin AND team_member */}
+            {!readOnly && user && canEdit && (
               <>
                 <ExportDialog />
                 <ShareDialog />
@@ -170,10 +168,11 @@ const UnifiMedProposal = () => {
                   <LogOut className="w-4 h-4" />
                   <span className="hidden md:inline">Logout</span>
                 </Button>
+                  
               </>
             )}
             
-            {/* ✅ Show Login button only if NOT public and NOT authenticated */}
+            {/* Show Login if not authenticated */}
             {!readOnly && !user && isAdmin && (
               <Button
                 variant="outline"
@@ -187,14 +186,12 @@ const UnifiMedProposal = () => {
             )}
           </div>
 
-          {/* Page indicators */}
           <div className="flex items-center gap-1 md:gap-2">
             {pages.map((page, index) => (
               <button
                 key={page.id}
                 onClick={() => goToPage(index)}
                 className="relative group"
-                aria-label={`Go to ${page.label}`}
               >
                 <div
                   className={`h-2 rounded-full transition-all duration-300 ${
@@ -210,7 +207,6 @@ const UnifiMedProposal = () => {
             ))}
           </div>
 
-          {/* Page counter */}
           <div className="text-xs md:text-sm text-muted-foreground min-w-[80px] text-right">
             <span className="font-semibold text-foreground">{currentPage + 1}</span>
             <span> / {pages.length}</span>
@@ -222,42 +218,3 @@ const UnifiMedProposal = () => {
 };
 
 export default UnifiMedProposal;
-// ```
-
-// ## Key Changes:
-
-// ### For **Public Users** (`readOnly={true}`, no auth):
-// ```
-// ✅ Previous button
-// ✅ Next button
-// ✅ Page indicators (dots)
-// ✅ Page counter (1 / 11)
-// ❌ Export button - HIDDEN
-// ❌ Share button - HIDDEN
-// ❌ Edit toggle - HIDDEN
-// ❌ Login button - HIDDEN
-// ❌ Logout button - HIDDEN
-// ❌ Edit sidebar - HIDDEN
-// ```
-
-// ### For **Authenticated Admins** (`readOnly={false}`, `user && isAdmin`):
-// ```
-// ✅ Previous button
-// ✅ Next button
-// ✅ Page indicators
-// ✅ Page counter
-// ✅ Export button
-// ✅ Share button
-// ✅ Edit toggle
-// ✅ Logout button
-// ✅ Edit sidebar (when edit mode is on)
-// ```
-
-// ### For **Non-authenticated users on edit route** (`readOnly={false}`, no user):
-// ```
-// ✅ Previous button
-// ✅ Next button
-// ✅ Page indicators
-// ✅ Page counter
-// ✅ Login button
-// ❌ Everything else - HIDDEN

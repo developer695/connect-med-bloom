@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AcceptInvitation from "@/components/proposal/pages/AcceptInvitation";
 
 const Index = () => {
   const { proposalId } = useParams<{ proposalId?: string }>();
@@ -70,6 +71,7 @@ const Index = () => {
   return (
     <ProposalContentProvider initialContent={proposalContent || undefined} proposalId={proposalId} readOnly ={!isAdmin}>
       <UnifiMedProposal />
+      {/* <AcceptInvitation /> */}
     </ProposalContentProvider>
   );
 };
