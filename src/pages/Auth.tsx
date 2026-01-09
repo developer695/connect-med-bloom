@@ -24,9 +24,9 @@ export default function Auth() {
       if (session?.user) {
         // Get role and redirect
         const { data: userData } = await supabase
-          .from("Users")
+          .from("profiles")
           .select("role")
-          .eq("user_id", session.user.id)
+          .eq("id", session.user.id)
           .single();
 
         if (userData?.role === "admin") {
@@ -65,19 +65,19 @@ export default function Auth() {
 
       console.log("✅ Logged in:", authData.user?.email);
 
-      // 2. Get role from Users table
+      // 2. Get role from profiles table
       const { data: userData } = await supabase
-        .from("Users")
+        .from("profiles")
         .select("role, name, status")
-        .eq("user_id", authData.user!.id)
+        .eq("id", authData.user!.id)
         .single();
 
       // 3. Update status to active (if first login after accepting invite)
       if (userData?.status === "accepted") {
         await supabase
-          .from("Users")
+          .from("profiles")
           .update({ status: "active" })
-          .eq("user_id", authData.user!.id);
+          .eq("id", authData.user!.id);
       }
 
       const role = userData?.role || "team_member";
@@ -128,7 +128,7 @@ export default function Auth() {
     try {
       // 1. Check if admin already exists
       const { data: existingAdmin } = await supabase
-        .from("Users")
+        .from("profiles")
         .select("id")
         .eq("role", "admin")
         .maybeSingle();
@@ -157,11 +157,11 @@ export default function Auth() {
 
       console.log("✅ Auth user created:", authData.user.id);
 
-      // 3. Insert admin into Users table
+      // 3. Insert admin into profiles table
       const { error: insertError } = await supabase
-        .from("Users")
+        .from("profiles")
         .insert({
-          user_id: authData.user.id,
+          id: authData.user.id,
           email: email.toLowerCase().trim(),
           name: email.split("@")[0], // Default name from email
           role: "admin",
@@ -173,7 +173,7 @@ export default function Auth() {
         throw new Error("Failed to create admin record");
       }
 
-      console.log("✅ Admin record created in Users table");
+      console.log("✅ Admin record created in profiles table");
 
       toast.success("🎉 Admin account created! Redirecting...");
 

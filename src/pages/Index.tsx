@@ -10,7 +10,7 @@ import AcceptInvitation from "@/components/proposal/pages/AcceptInvitation";
 
 const Index = () => {
   const { proposalId } = useParams<{ proposalId?: string }>();
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, canEdit, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(!!proposalId);
@@ -40,7 +40,7 @@ const Index = () => {
 
   const loadProposal = async () => {
     if (!proposalId) return;
-    
+
     const { data, error } = await supabase
       .from("site_content")
       .select("content")
@@ -69,7 +69,11 @@ const Index = () => {
   }
 
   return (
-    <ProposalContentProvider initialContent={proposalContent || undefined} proposalId={proposalId} readOnly ={!isAdmin}>
+    <ProposalContentProvider
+      initialContent={proposalContent || undefined}
+      proposalId={proposalId}
+      readOnly={!canEdit}
+    >
       <UnifiMedProposal />
       {/* <AcceptInvitation /> */}
     </ProposalContentProvider>

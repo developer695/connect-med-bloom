@@ -24,13 +24,26 @@ export default function AcceptInvitation() {
 
   useEffect(() => {
     console.log("🔍 Checking for authenticated user...");
+    console.log("🔗 Current URL:", window.location.href);
+    console.log("🔗 URL Hash:", window.location.hash);
     checkUser();
   }, []);
 
   const checkUser = async () => {
     try {
+      // Check if there's a token in the URL (from invite link)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      
+      console.log("🎫 URL token type:", type);
+      console.log("🎫 Has access token:", !!accessToken);
+
       // Get current session (Supabase sets this from the invite link)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log("📋 Session exists:", !!session);
+      console.log("👤 Session user:", session?.user?.email);
 
       if (sessionError) {
         console.error("❌ Session error:", sessionError);
@@ -49,14 +62,42 @@ export default function AcceptInvitation() {
       const user = session.user;
       console.log("✅ User found:", user.email);
 
-      // Get profile data
-      const { data: profileData } = await supabase
+      // First try Users table (for admin - uses user_id column)
+      const { data: adminData, error: adminError } = await supabase
+        .from("Users")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (adminData && adminData.role === "admin") {
+        console.log("✅ Admin found in Users table:", adminData);
+        setUserEmail(adminData.email || user.email || "");
+        setUserName(adminData.name || user.user_metadata?.name || "");
+        setUserRole("admin");
+        setUserId(user.id);
+
+        if (adminData.status === "active") {
+          toast.info("Account already set up. Redirecting to login...");
+          navigate("/auth");
+          return;
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise check profiles table (for team member - uses id column)
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("❌ Error fetching profile:", profileError);
+      }
 
       if (profileData) {
+        console.log("✅ Profile data found:", profileData);
         setUserEmail(profileData.email || user.email || "");
         setUserName(profileData.name || user.user_metadata?.name || "");
         setUserRole(profileData.role || "team_member");
@@ -69,6 +110,8 @@ export default function AcceptInvitation() {
           return;
         }
       } else {
+        // No record found in either table - use auth user data
+        console.log("⚠️ No record found, using auth data");
         setUserEmail(user.email || "");
         setUserName(user.user_metadata?.name || "");
         setUserRole(user.user_metadata?.role || "team_member");
@@ -116,18 +159,30 @@ export default function AcceptInvitation() {
 
       console.log("✅ Password updated");
 
-      // Update profile status to active
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ status: "active" })
-        .eq("id", userId);
+      // Update the correct table based on role
+      if (userRole === "admin") {
+        // Update Users table for admin (uses user_id column)
+        const { error: userError } = await supabase
+          .from("Users")
+          .update({ status: "active" })
+          .eq("user_id", userId);
 
-      if (profileError) {
-        console.error("⚠️ Profile update error:", profileError);
-        // Don't throw - password was set successfully
+        if (userError) {
+          console.error("⚠️ Users table update error:", userError);
+        }
+        console.log("✅ Admin status updated in Users table");
+      } else {
+        // Update profiles table for team member (uses id column)
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ status: "active" })
+          .eq("id", userId);
+
+        if (profileError) {
+          console.error("⚠️ Profile update error:", profileError);
+        }
+        console.log("✅ Team member status updated in profiles table");
       }
-
-      console.log("✅ Profile updated");
 
       // Sign out so they can login with new password
       await supabase.auth.signOut();

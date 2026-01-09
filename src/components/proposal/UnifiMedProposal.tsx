@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, LogIn, LogOut, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogIn, LogOut, Loader2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
@@ -11,6 +11,8 @@ import EditModeToggle from "./EditModeToggle";
 import EditSidebar from "./EditSidebar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { exportToPDF } from "@/utils/exportProposal";
+import { useToast } from "@/hooks/use-toast";
 
 import CoverPage from "./pages/CoverPage";
 import LetterPage from "./pages/LetterPage";
@@ -39,13 +41,15 @@ const pages = [
 ];
 
 const UnifiMedProposal = () => {
-  const { isEditMode, readOnly, isLoading } = useProposalContent();
+  const { isEditMode, readOnly, isLoading, content } = useProposalContent();
   const { user, isAdmin, canEdit, signOut } = useAuth(); 
+  const { toast } = useToast();
   console.log("canIsadmit",canEdit);
   
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const goToPage = useCallback((index: number) => {
     setDirection(index > currentPage ? 1 : -1);
@@ -69,6 +73,26 @@ const UnifiMedProposal = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      await exportToPDF(content);
+      toast({
+        title: "PDF Downloaded",
+        description: "The proposal has been downloaded as a PDF.",
+      });
+    } catch (error) {
+      console.error("PDF download error:", error);
+      toast({
+        title: "Download Failed",
+        description: "There was an error downloading the PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -182,6 +206,26 @@ const UnifiMedProposal = () => {
               >
                 <LogIn className="w-4 h-4" />
                 <span className="hidden md:inline">Login</span>
+              </Button>
+            )}
+
+            {/* Download button for public/read-only view */}
+            {readOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                className="gap-1 md:gap-2"
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span className="hidden md:inline">
+                  {isDownloading ? "Downloading..." : "Download PDF"}
+                </span>
               </Button>
             )}
           </div>

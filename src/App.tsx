@@ -11,10 +11,9 @@ import Auth from "./pages/Auth";
 import PublicProposal from "./pages/PublicProposal";
 import ProposalViewer from "./pages/ProposalViewer";
 import NotFound from "./pages/NotFound";
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
 import AuthCallback from "./pages/AuthCallback";
 import AcceptInvitation from "./components/proposal/pages/AcceptInvitation";
-
 
 const queryClient = new QueryClient();
 
@@ -38,43 +37,41 @@ const App = () => (
           />
           <Routes>
             {/* ✅ Accept Invitation - NO AUTH REQUIRED (must be before protected routes) */}
-            <Route path="/accept-invitation" element={<AcceptInvitation/>} />
-            
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
+
             {/* ✅ Auth Pages */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            
+
             {/* ✅ Public View Routes - Read-only */}
-            <Route 
-              path="/proposal/:viewToken" 
+            <Route
+              path="/proposal/:viewToken"
               element={
                 <ProposalContentProvider readOnly={true}>
                   <PublicProposal />
                 </ProposalContentProvider>
-              } 
+              }
             />
-            
-            <Route 
-              path="/view/:shareId" 
+
+            <Route
+              path="/view/:shareId"
               element={
                 <ProposalContentProvider readOnly={true}>
                   <ProposalViewer />
                 </ProposalContentProvider>
-              } 
+              }
             />
-            
+
             {/* ✅ Protected Editor Route */}
-            <Route 
-              path="/" 
+            <Route
+              path="/"
               element={
                 <ProtectedRoute>
-                  <ProposalContentProvider readOnly={false}>
-                    <Index />
-                  </ProposalContentProvider>
+                  <Index />
                 </ProtectedRoute>
-              } 
+              }
             />
-            
+
             {/* ✅ 404 Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>

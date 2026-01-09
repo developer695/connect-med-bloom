@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,7 +41,7 @@ export interface ShapeConfig {
   height: number;
 }
 
-export type DurationUnit = 'weeks' | 'months';
+export type DurationUnit = "weeks" | "months";
 
 const WEEKS_PER_MONTH = 4.345;
 
@@ -284,7 +292,7 @@ const fallbackContent: ProposalContent = {
 
 // Calculate total hours from deliverable
 export const calculateDeliverableHours = (deliverable: Deliverable): number => {
-  if (deliverable.durationUnit === 'months') {
+  if (deliverable.durationUnit === "months") {
     const weeks = deliverable.duration * WEEKS_PER_MONTH;
     return Math.round(deliverable.hoursPerPeriod * weeks);
   }
@@ -302,7 +310,7 @@ export const calculatePackagePrice = (
   allDeliverables: Deliverable[]
 ): number => {
   return includedDeliverables.reduce((total, title) => {
-    const deliverable = allDeliverables.find(d => d.title === title);
+    const deliverable = allDeliverables.find((d) => d.title === title);
     if (deliverable) {
       return total + calculateDeliverableCost(deliverable);
     }
@@ -315,7 +323,7 @@ export const calculatePackageHours = (
   allDeliverables: Deliverable[]
 ): number => {
   return includedDeliverables.reduce((total, title) => {
-    const deliverable = allDeliverables.find(d => d.title === title);
+    const deliverable = allDeliverables.find((d) => d.title === title);
     if (deliverable) {
       return total + calculateDeliverableHours(deliverable);
     }
@@ -330,11 +338,11 @@ export const calculatePackageDurationMonths = (
 ): number => {
   let maxMonths = 0;
 
-  includedDeliverables.forEach(title => {
-    const deliverable = allDeliverables.find(d => d.title === title);
+  includedDeliverables.forEach((title) => {
+    const deliverable = allDeliverables.find((d) => d.title === title);
     if (deliverable) {
       let months: number;
-      if (deliverable.durationUnit === 'months') {
+      if (deliverable.durationUnit === "months") {
         months = deliverable.duration;
       } else {
         months = deliverable.duration / WEEKS_PER_MONTH;
@@ -348,9 +356,9 @@ export const calculatePackageDurationMonths = (
 
 // Format price as currency
 export const formatPrice = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -362,13 +370,16 @@ export interface SavedProposal {
   clientName: string;
   savedAt: string;
   content: ProposalContent;
-  status?: 'draft' | 'sent' | 'accepted' | 'rejected';
+  status?: "draft" | "sent" | "accepted" | "rejected";
   createdBy?: string;
 }
 
 interface ProposalContextType {
   content: ProposalContent;
-  updateContent: <K extends keyof ProposalContent>(section: K, data: Partial<ProposalContent[K]>) => void;
+  updateContent: <K extends keyof ProposalContent>(
+    section: K,
+    data: Partial<ProposalContent[K]>
+  ) => void;
   isEditMode: boolean;
   setIsEditMode: (value: boolean) => void;
   resetContent: () => void;
@@ -382,17 +393,20 @@ interface ProposalContextType {
   lastSaved: Date | null;
   autoSaveEnabled: boolean;
   setAutoSaveEnabled: (enabled: boolean) => void;
-  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  saveStatus: "idle" | "saving" | "saved" | "error";
   loadSiteContent: () => Promise<void>;
   getContent: () => ProposalContent;
+  readOnly: boolean;
 }
 
-const ProposalContentContext = createContext<ProposalContextType | undefined>(undefined);
+const ProposalContentContext = createContext<ProposalContextType | undefined>(
+  undefined
+);
 
 interface ProposalContentProviderProps {
   children: ReactNode;
   initialContent?: ProposalContent;
-  readOnly?: boolean ;
+  readOnly?: boolean;
   proposalId?: string;
 }
 
@@ -400,18 +414,25 @@ export const ProposalContentProvider = ({
   children,
   initialContent,
   readOnly = false,
-  proposalId
+  proposalId,
 }: ProposalContentProviderProps) => {
-  const [content, setContent] = useState<ProposalContent>(initialContent || fallbackContent);
+  const [content, setContent] = useState<ProposalContent>(
+    initialContent || fallbackContent
+  );
   const [isEditMode, setIsEditMode] = useState(false);
-  const [currentProposalUuid, setCurrentProposalUuid] = useState<string | null>(proposalId || null);
-  const [currentProposalVersion, setCurrentProposalVersion] = useState<number>(1);
+  const [currentProposalUuid, setCurrentProposalUuid] = useState<string | null>(
+    proposalId || null
+  );
+  const [currentProposalVersion, setCurrentProposalVersion] =
+    useState<number>(1);
   const [isLoading, setIsLoading] = useState(!initialContent);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   const contentRef = useRef<ProposalContent>(content);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -436,28 +457,25 @@ export const ProposalContentProvider = ({
       setIsLoading(true);
       setError(null);
 
-  
       const startTime = Date.now();
 
       const { data, error: fetchError } = await supabase
-        .from('site_content')
-        .select('*') // ✅ Select all columns
-        .eq('is_active', true)
-        .eq('content_type', 'proposal')
-        .order('created_at', { ascending: false })
+        .from("site_content")
+        .select("*") // ✅ Select all columns
+        .eq("is_active", true)
+        .eq("content_type", "proposal")
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       const loadTime = Date.now() - startTime;
-   
 
       if (fetchError) {
-        console.error('❌ Fetch error:', fetchError);
+        console.error("❌ Fetch error:", fetchError);
         throw fetchError;
       }
 
       if (data) {
-    
         const siteContent: ProposalContent = {
           cover: data.cover || fallbackContent.cover,
           letter: data.letter || fallbackContent.letter,
@@ -486,14 +504,26 @@ export const ProposalContentProvider = ({
         };
 
         setContent(contentWithDates);
-        
+
+        // ✅ Set the proposal UUID and version for auto-save
+        if (data.id) {
+          setCurrentProposalUuid(data.id);
+          setCurrentProposalVersion(data.version || 1);
+          console.log(
+            "✅ Loaded proposal ID:",
+            data.id,
+            "Version:",
+            data.version
+          );
+        }
       } else {
-        console.warn('⚠️ No default content found, using fallback');
+        console.warn("⚠️ No default content found, using fallback");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load site content';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load site content";
       setError(errorMessage);
-      console.error('❌ Error loading site content:', err);
+      console.error("❌ Error loading site content:", err);
     } finally {
       setIsLoading(false);
     }
@@ -501,90 +531,106 @@ export const ProposalContentProvider = ({
 
   // ✅ UPDATED: Auto-save to individual columns
   const autoSaveToDatabase = useCallback(
-    debounce(async (contentToSave: ProposalContent, uuid: string, version: number) => {
-      if (!autoSaveEnabled || readOnly) return;
+    debounce(
+      async (contentToSave: ProposalContent, uuid: string, version: number) => {
+        if (!autoSaveEnabled || readOnly) return;
 
-      try {
-        setSaveStatus('saving');
-        setIsSaving(true);
-      
+        try {
+          setSaveStatus("saving");
+          setIsSaving(true);
 
-        const newVersion = version + 1;
+          const newVersion = version + 1;
 
-        // ✅ Save each section to its own column
-        const { error } = await supabase
-          .from("site_content")
-          .update({
-            cover: contentToSave.cover,
-            letter: contentToSave.letter,
-            about: contentToSave.about,
-            how_we_work: contentToSave.howWeWork,
-            solutions: contentToSave.solutions,
-            markets: contentToSave.markets,
-            clients: contentToSave.clients,
-            team: contentToSave.team,
-            proposal: contentToSave.proposal,
-            value: contentToSave.value,
-            contact: contentToSave.contact,
-            shapes: contentToSave.shapes,
-            version: newVersion,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", uuid);
+          // ✅ Save each section to its own column
+          const { error } = await supabase
+            .from("site_content")
+            .update({
+              cover: contentToSave.cover,
+              letter: contentToSave.letter,
+              about: contentToSave.about,
+              how_we_work: contentToSave.howWeWork,
+              solutions: contentToSave.solutions,
+              markets: contentToSave.markets,
+              clients: contentToSave.clients,
+              team: contentToSave.team,
+              proposal: contentToSave.proposal,
+              value: contentToSave.value,
+              contact: contentToSave.contact,
+              shapes: contentToSave.shapes,
+              version: newVersion,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", uuid);
 
-        if (error) {
-          console.error('❌ Auto-save failed:', error);
-          setSaveStatus('error');
-          return;
+          if (error) {
+            console.error("❌ Auto-save failed:", error);
+            setSaveStatus("error");
+            return;
+          }
+
+          setCurrentProposalVersion(newVersion);
+          setSaveStatus("saved");
+          setLastSaved(new Date());
+
+          setTimeout(() => setSaveStatus("idle"), 2000);
+        } catch (error) {
+          console.error("❌ Auto-save error:", error);
+          setSaveStatus("error");
+        } finally {
+          setIsSaving(false);
         }
-
-       
-        setCurrentProposalVersion(newVersion);
-        setSaveStatus('saved');
-        setLastSaved(new Date());
-
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } catch (error) {
-        console.error('❌ Auto-save error:', error);
-        setSaveStatus('error');
-      } finally {
-        setIsSaving(false);
-      }
-    }, 2000),
+      },
+      2000
+    ),
     [autoSaveEnabled, readOnly]
   );
 
-const updateContent = useCallback(<K extends keyof ProposalContent>(
-    section: K,
-    data: Partial<ProposalContent[K]>
-  ) => {
+  const updateContent = useCallback(
+    <K extends keyof ProposalContent>(
+      section: K,
+      data: Partial<ProposalContent[K]>
+    ) => {
+      if (readOnly) {
+        console.log("❌ BLOCKED: readOnly is true!");
+        return;
+      }
 
-    
-    if (readOnly) {
-      console.log('❌ BLOCKED: readOnly is true!');
-      return;
-    }
+      console.log("✏️ Updating section:", section, data);
 
+      setContent((prev) => {
+        const newContent = {
+          ...prev,
+          [section]: { ...prev[section], ...data },
+        };
 
-    console.log('section ,', section, data);
-    
-    setContent(prev => {
-      console.log('🔥 setContent executing...');
-      const newContent = {
-        ...prev,
-        [section]: { ...prev[section], ...data },
-      };
-    
-      return newContent;
-    });
-  }, [readOnly, currentProposalUuid, currentProposalVersion, autoSaveEnabled, autoSaveToDatabase]);
+        // ✅ Trigger auto-save to database after content update
+        if (currentProposalUuid && autoSaveEnabled) {
+          console.log("💾 Auto-saving to database...");
+          autoSaveToDatabase(
+            newContent,
+            currentProposalUuid,
+            currentProposalVersion
+          );
+        }
+
+        return newContent;
+      });
+    },
+    [
+      readOnly,
+      currentProposalUuid,
+      currentProposalVersion,
+      autoSaveEnabled,
+      autoSaveToDatabase,
+    ]
+  );
 
   const resetContent = async () => {
     await loadSiteContent();
     setCurrentProposalUuid(null);
     setCurrentProposalVersion(1);
     setLastSaved(null);
-    setSaveStatus('idle');
+    setSaveStatus("idle");
   };
 
   useEffect(() => {
@@ -596,26 +642,29 @@ const updateContent = useCallback(<K extends keyof ProposalContent>(
   }, []);
 
   return (
-    <ProposalContentContext.Provider value={{
-      content,
-      updateContent,
-      isEditMode,
-      setIsEditMode,
-      resetContent,
-      currentProposalUuid,
-      setCurrentProposalUuid,
-      currentProposalVersion,
-      setCurrentProposalVersion,
-      isLoading,
-      isSaving,
-      error,
-      lastSaved,
-      autoSaveEnabled,
-      setAutoSaveEnabled,
-      saveStatus,
-      loadSiteContent,
-      getContent,
-    }}>
+    <ProposalContentContext.Provider
+      value={{
+        content,
+        updateContent,
+        isEditMode,
+        setIsEditMode,
+        resetContent,
+        currentProposalUuid,
+        setCurrentProposalUuid,
+        currentProposalVersion,
+        setCurrentProposalVersion,
+        isLoading,
+        isSaving,
+        error,
+        lastSaved,
+        autoSaveEnabled,
+        setAutoSaveEnabled,
+        saveStatus,
+        loadSiteContent,
+        getContent,
+        readOnly,
+      }}
+    >
       {children}
     </ProposalContentContext.Provider>
   );
@@ -624,7 +673,9 @@ const updateContent = useCallback(<K extends keyof ProposalContent>(
 export const useProposalContent = () => {
   const context = useContext(ProposalContentContext);
   if (!context) {
-    throw new Error("useProposalContent must be used within ProposalContentProvider");
+    throw new Error(
+      "useProposalContent must be used within ProposalContentProvider"
+    );
   }
   return context;
 };
