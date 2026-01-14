@@ -259,7 +259,7 @@ const EditSidebar = () => {
 
       // ✅ Query the correct table name (Users or profiles)
       const { data, error } = await supabase
-        .from("Users") 
+        .from("Users")
         .select("role")
         .eq("user_id", user.id)
 
@@ -269,7 +269,7 @@ const EditSidebar = () => {
         return;
       }
       console.log("✅ Current user role:", data);
-      setIsAdmin(data[0]?.role ===  "admin");
+      setIsAdmin(data[0]?.role === "admin");
 
     } catch (error) {
       console.error("❌ Error loading admin role:", error);
@@ -284,97 +284,97 @@ const EditSidebar = () => {
   }, []);
   console.log("is admin", isAdmin);
 
-// Updated handleInvitePartner function
-// Replace your existing function with this one
+  // Updated handleInvitePartner function
+  // Replace your existing function with this one
 
-const handleInvitePartner = async () => {
-  // Validate form fields
-  if (!newPartner.name.trim() || !newPartner.email.trim()) {
-    toast.error("Name and email are required");
-    return;
-  }
-
-  if (!newPartner.role) {
-    toast.error("Please select a role");
-    return;
-  }
-
-  console.log('is admin ', isAdmin);
-
-  // Check if current user is admin
-  if (!isAdmin) {
-    toast.error("Only admins can invite team members");
-    return;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(newPartner.email)) {
-    toast.error("Please enter a valid email address");
-    return;
-  }
-
-  setIsInviting(true);
-
-  try {
-    // ✅ Include bio and image in payload
-    const payload = {
-      email: newPartner.email.trim().toLowerCase(),
-      role: newPartner.role,
-      name: newPartner.name.trim(),
-      bio: newPartner.bio?.trim() || undefined,    // Include bio
-      image: newPartner.image || undefined,         // Include image URL
-    };
-
-    console.log("🔍 INVITE PAYLOAD:", payload);
-
-    const result = await inviteTeamMember(payload);
-
-    console.log("✅ Invitation result:", result);
-
-    // Add to local team members list (for UI)
-    const newMembers = [
-      ...(content.team.members || []),
-      {
-        name: newPartner.name,
-        email: newPartner.email,
-        role: newPartner.role,
-        bio: newPartner.bio,
-        image: newPartner.image,
-      },
-    ];
-
-    updateContent("team", { members: newMembers });
-
-    toast.success(`🎉 Invitation sent to ${newPartner.email}!`);
-
-    // Reset form
-    setNewPartner({
-      name: "",
-      email: "",
-      role: "team_member",
-      bio: "",
-      image: "",
-    });
-
-    setShowAddPartner(false);
-
-  } catch (error: any) {
-    console.error("❌ Invite error:", error);
-
-    // Specific error messages
-    if (error.message.includes("already exists") || error.message.includes("already registered")) {
-      toast.error("This email is already registered");
-    } else if (error.message.includes("already sent")) {
-      toast.error("Invitation already sent to this email");
-    } else if (error.message.includes("Invalid email")) {
-      toast.error("Please provide a valid email address");
-    } else {
-      toast.error(error.message || "Failed to send invitation");
+  const handleInvitePartner = async () => {
+    // Validate form fields
+    if (!newPartner.name.trim() || !newPartner.email.trim()) {
+      toast.error("Name and email are required");
+      return;
     }
-  } finally {
-    setIsInviting(false);
-  }
-};
+
+    if (!newPartner.role) {
+      toast.error("Please select a role");
+      return;
+    }
+
+    console.log('is admin ', isAdmin);
+
+    // Check if current user is admin
+    if (!isAdmin) {
+      toast.error("Only admins can invite team members");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newPartner.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsInviting(true);
+
+    try {
+      // ✅ Include bio and image in payload
+      const payload = {
+        email: newPartner.email.trim().toLowerCase(),
+        role: newPartner.role,
+        name: newPartner.name.trim(),
+        bio: newPartner.bio?.trim() || undefined,    // Include bio
+        image: newPartner.image || undefined,         // Include image URL
+      };
+
+      console.log("🔍 INVITE PAYLOAD:", payload);
+
+      const result = await inviteTeamMember(payload);
+
+      console.log("✅ Invitation result:", result);
+
+      // Add to local team members list (for UI)
+      const newMembers = [
+        ...(content.team.members || []),
+        {
+          name: newPartner.name,
+          email: newPartner.email,
+          role: newPartner.role,
+          bio: newPartner.bio,
+          image: newPartner.image,
+        },
+      ];
+
+      updateContent("team", { members: newMembers });
+
+      toast.success(`🎉 Invitation sent to ${newPartner.email}!`);
+
+      // Reset form
+      setNewPartner({
+        name: "",
+        email: "",
+        role: "team_member",
+        bio: "",
+        image: "",
+      });
+
+      setShowAddPartner(false);
+
+    } catch (error: any) {
+      console.error("❌ Invite error:", error);
+
+      // Specific error messages
+      if (error.message.includes("already exists") || error.message.includes("already registered")) {
+        toast.error("This email is already registered");
+      } else if (error.message.includes("already sent")) {
+        toast.error("Invitation already sent to this email");
+      } else if (error.message.includes("Invalid email")) {
+        toast.error("Please provide a valid email address");
+      } else {
+        toast.error(error.message || "Failed to send invitation");
+      }
+    } finally {
+      setIsInviting(false);
+    }
+  };
 
   const addPartnerToProjectTeam = (partner: { name: string; role: string; bio: string; image?: string }) => {
     const projectTeamMember = {
@@ -386,6 +386,42 @@ const handleInvitePartner = async () => {
     const newProjectTeam = [...(content.proposal.projectTeam || []), projectTeamMember];
     updateContent("proposal", { projectTeam: newProjectTeam });
     toast.success(`${partner.name} added to project team`);
+  };
+
+  const handleRemovePartner = async (index: number) => {
+    const member = content.team.members?.[index];
+    if (!member) return;
+
+    // If member is team lead, only admins can remove
+    if (member.role === 'team_lead' && !isAdmin) {
+      toast.error('Only admins can remove the team lead');
+      return;
+    }
+
+    // Try SweetAlert2 for confirmation, fall back to window.confirm
+    let confirmed = false;
+    try {
+      const Swal = (await import('sweetalert2')).default;
+      const result = await Swal.fire({
+        title: `Remove ${member.name}?`,
+        text: 'This cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, remove',
+        cancelButtonText: 'Cancel'
+      });
+      confirmed = !!result.isConfirmed;
+    } catch (e) {
+      // sweetalert2 not available, fallback
+      confirmed = confirm(`Remove ${member.name} from partners? This cannot be undone.`);
+    }
+
+    if (!confirmed) return;
+
+    const newMembers = (content.team.members || []).filter((_, i) => i !== index);
+    updateContent('team', { members: newMembers });
+    toast.success(`${member.name} removed`);
+    setExpandedPartner(null);
   };
 
   if (!isEditMode) return null;
@@ -468,7 +504,7 @@ const handleInvitePartner = async () => {
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
-      
+
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -502,10 +538,74 @@ const handleInvitePartner = async () => {
                       )}
                     </div>
                   </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="p-2 border-t border-border/30 bg-background space-y-2">
+                      <div className="text-[10px] text-muted-foreground">Role</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">{partner.role === 'team_lead' ? 'Team Lead' : partner.role}</span>
+                        {partner.role === 'team_lead' && (
+                          <span className="text-[10px] text-muted-foreground ml-2">(Protected — admin can remove)</span>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-muted-foreground mb-1">Bio</div>
+                        <div className="text-xs text-foreground">{partner.bio || 'No bio provided'}</div>
+                      </div>
+
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={(el) => (partnerFileInputRefs.current[index] = el)}
+                          onChange={(e) => handlePartnerImageUpload(index, e)}
+                          className="hidden"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => partnerFileInputRefs.current[index]?.click()}
+                            className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <Camera className="w-3 h-3" />
+                            Upload Photo
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => addPartnerToProjectTeam(partner)}
+                            className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            Add to Project
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/30 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPartner(null)}
+                          className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors"
+                        >
+                          Close
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePartner(index)}
+                          className="flex-1 h-7 text-[10px] text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
                 </Collapsible>
               ))}
 
-            
+
               <div>
                 {showAddPartner ? (
                   <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">

@@ -81,36 +81,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Step 1: Recover session from localStorage (persisted by Supabase)
+        const { data: { session: recoveredSession }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+          console.error('❌ Error recovering session:', sessionError);
+        }
+
+        if (mounted && recoveredSession?.user) {
+          console.log('✅ Session recovered from localStorage:', recoveredSession.user.email);
+          setSession(recoveredSession);
+          setUser(recoveredSession.user);
+          await fetchUserRole(recoveredSession.user.id);
+        } else {
+          console.log('⚠️ No persisted session found');
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('❌ Error during auth initialization:', error);
+        setIsLoading(false);
+      }
+    };
+
+    // Initialize auth on mount
+    initializeAuth();
+
+    // Step 2: Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
+        console.log('🔄 Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id).then(() => setIsLoading(false));
-          }, 0);
+          await fetchUserRole(session.user.id);
         } else {
           setIsAdmin(false);
           setIsTeamMember(false);
           setUserRole(null);
-          setIsLoading(false);
         }
+
+        setIsLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        fetchUserRole(session.user.id).then(() => setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
