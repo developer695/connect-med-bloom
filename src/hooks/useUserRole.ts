@@ -1,15 +1,16 @@
 // src/hooks/useUserRole.ts
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserData {
   id: string;
-  user_id: string;
   email: string;
   name: string | null;
-  role: 'admin' | 'team_member';
-  status: 'pending' | 'accepted' | 'active';
+  role: "admin" | "team_member";
+  bio: string | null;
+  avatar_url: string | null;
+  status: "pending" | "active";
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +26,10 @@ export function useUserRole() {
     const fetchUserRole = async () => {
       try {
         // Get auth user
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
         if (authError || !user) {
           if (isMounted) {
@@ -35,15 +39,15 @@ export function useUserRole() {
           return;
         }
 
-        // Get user data from Users table
+        // Get user data from profiles table
         const { data, error: dbError } = await supabase
-          .from('Users')
-          .select('*')
-          .eq('user_id', user.id)
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
           .single();
 
         if (dbError) {
-          console.error('Error fetching user role:', dbError);
+          console.error("Error fetching user role:", dbError);
           if (isMounted) {
             setError(dbError.message);
             setUserData(null);
@@ -52,7 +56,7 @@ export function useUserRole() {
           setUserData(data as UserData);
         }
       } catch (err: any) {
-        console.error('Error:', err);
+        console.error("Error:", err);
         if (isMounted) {
           setError(err.message);
         }
@@ -66,13 +70,15 @@ export function useUserRole() {
     fetchUserRole();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
         if (isMounted) {
           setUserData(null);
           setLoading(false);
         }
-      } else if (event === 'SIGNED_IN' && session?.user) {
+      } else if (event === "SIGNED_IN" && session?.user) {
         fetchUserRole();
       }
     });
@@ -86,8 +92,8 @@ export function useUserRole() {
   return {
     userData,
     role: userData?.role || null,
-    isAdmin: userData?.role === 'admin',
-    isTeamMember: userData?.role === 'team_member',
+    isAdmin: userData?.role === "admin",
+    isTeamMember: userData?.role === "team_member",
     loading,
     error,
   };

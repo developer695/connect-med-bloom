@@ -1,12 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, ChevronDown, ChevronRight, Users, Trash2, Camera, Save, FilePlus, Archive, UserPlus } from "lucide-react";
+import {
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  Users,
+  Trash2,
+  Camera,
+  Save,
+  FilePlus,
+  Archive,
+  UserPlus,
+} from "lucide-react";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { uploadFileToSupabase } from "@/integrations/supabase/imageUploadData";
@@ -22,22 +43,22 @@ const EditSidebar = () => {
     setCurrentProposalUuid,
     currentProposalVersion,
     setCurrentProposalVersion,
-    getContent
+    getContent,
   } = useProposalContent();
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [saveFormData, setSaveFormData] = useState({ author: '' });
+  const [saveFormData, setSaveFormData] = useState({ author: "" });
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [expandedPartner, setExpandedPartner] = useState<number | null>(null);
   const [showAddPartner, setShowAddPartner] = useState(false);
   const [newPartner, setNewPartner] = useState({
-    name: '',
-    email: '',
-    role: 'team_member' as 'team_member' | 'admin',
-    bio: '',
-    image: ''
+    name: "",
+    email: "",
+    role: "team_member" as "team_member" | "admin",
+    bio: "",
+    image: "",
   });
   const [isInviting, setIsInviting] = useState(false);
   const partnerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -48,7 +69,6 @@ const EditSidebar = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // ✅ Check admin role
-
 
   // Load proposal
   const loadSingleProposal = async () => {
@@ -63,8 +83,8 @@ const EditSidebar = () => {
         .limit(1)
         .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Error loading proposal:', error);
+      if (error && error.code !== "PGRST116") {
+        console.error("❌ Error loading proposal:", error);
         return;
       }
 
@@ -84,10 +104,10 @@ const EditSidebar = () => {
 
         setCurrentProposalUuid(data.id);
         setCurrentProposalVersion(data.version);
-        setSaveFormData({ author: data.author || '' });
+        setSaveFormData({ author: data.author || "" });
       }
     } catch (error) {
-      console.error('❌ Error loading proposal:', error);
+      console.error("❌ Error loading proposal:", error);
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +119,7 @@ const EditSidebar = () => {
 
   const handleSaveProposal = async () => {
     if (!saveFormData.author.trim()) {
-      toast.error('Please enter author name');
+      toast.error("Please enter author name");
       return;
     }
 
@@ -117,7 +137,7 @@ const EditSidebar = () => {
         .maybeSingle();
 
       if (checkError) {
-        console.error('❌ Error checking existing proposal:', checkError);
+        console.error("❌ Error checking existing proposal:", checkError);
         toast.error(`Error: ${checkError.message}`);
         return;
       }
@@ -142,27 +162,26 @@ const EditSidebar = () => {
             shapes: currentContent.shapes,
             author: saveFormData.author.trim(),
             version: newVersion,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id)
-          .select('id, version, updated_at');
+          .select("id, version, updated_at");
 
         if (updateError) {
-          console.error('❌ Failed to update:', updateError);
+          console.error("❌ Failed to update:", updateError);
           toast.error(`Failed to update: ${updateError.message}`);
           return;
         }
 
         if (!updateResult || updateResult.length === 0) {
-          console.error('⚠️ Update returned no data - RLS may be blocking');
-          toast.error('Warning: Update may have failed due to permissions.');
+          console.error("⚠️ Update returned no data - RLS may be blocking");
+          toast.error("Warning: Update may have failed due to permissions.");
           return;
         }
 
         setCurrentProposalUuid(existing.id);
         setCurrentProposalVersion(newVersion);
         toast.success(`Proposal updated successfully! (Version ${newVersion})`);
-
       } else {
         const viewToken = crypto.randomUUID();
 
@@ -185,13 +204,13 @@ const EditSidebar = () => {
             author: saveFormData.author.trim(),
             is_active: true,
             view_token: viewToken,
-            version: 1
+            version: 1,
           })
           .select()
           .single();
 
         if (insertError) {
-          console.error('❌ Failed to insert:', insertError);
+          console.error("❌ Failed to insert:", insertError);
           toast.error(`Failed to save: ${insertError.message}`);
           return;
         }
@@ -199,31 +218,37 @@ const EditSidebar = () => {
         if (insertData) {
           setCurrentProposalUuid(insertData.id);
           setCurrentProposalVersion(insertData.version);
-          toast.success('Proposal saved successfully!');
+          toast.success("Proposal saved successfully!");
         }
       }
 
       setShowSaveDialog(false);
     } catch (error) {
-      console.error('❌ Error saving proposal:', error);
-      toast.error('Error saving proposal: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error("❌ Error saving proposal:", error);
+      toast.error(
+        "Error saving proposal: " +
+          (error instanceof Error ? error.message : "Unknown error"),
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleNewProposal = () => {
-    if (confirm('Reset proposal content? This will clear all data.')) {
+    if (confirm("Reset proposal content? This will clear all data.")) {
       resetContent();
-      setSaveFormData({ author: '' });
+      setSaveFormData({ author: "" });
     }
   };
 
-  const handlePartnerImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePartnerImageUpload = async (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const url = await uploadFileToSupabase(file, 'partners');
+    const url = await uploadFileToSupabase(file, "partners");
     if (!url) return;
 
     const newMembers = [...(content.team.members || [])];
@@ -231,21 +256,25 @@ const EditSidebar = () => {
     updateContent("team", { members: newMembers });
   };
 
-  const handleNewPartnerImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewPartnerImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const url = await uploadFileToSupabase(file, 'partners');
+    const url = await uploadFileToSupabase(file, "partners");
     if (!url) return;
 
-    setNewPartner(prev => ({ ...prev, image: url }));
+    setNewPartner((prev) => ({ ...prev, image: url }));
   };
   console.log("newPartner dataa", newPartner);
   const getAdminRole = async () => {
     setIsLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         console.log("⚠️ No authenticated user");
@@ -257,11 +286,12 @@ const EditSidebar = () => {
       setCurrentUserId(user.id);
       console.log("✅ Current user ID:", user.id);
 
-      // ✅ Query the correct table name (Users or profiles)
+      // ✅ Query the profiles table (id is FK to auth.users.id)
       const { data, error } = await supabase
-        .from("Users")
+        .from("profiles")
         .select("role")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
+        .single();
 
       if (error) {
         console.error("❌ Error fetching role:", error);
@@ -269,8 +299,7 @@ const EditSidebar = () => {
         return;
       }
       console.log("✅ Current user role:", data);
-      setIsAdmin(data[0]?.role === "admin");
-
+      setIsAdmin(data?.role === "admin");
     } catch (error) {
       console.error("❌ Error loading admin role:", error);
       setIsAdmin(false);
@@ -299,7 +328,7 @@ const EditSidebar = () => {
       return;
     }
 
-    console.log('is admin ', isAdmin);
+    console.log("is admin ", isAdmin);
 
     // Check if current user is admin
     if (!isAdmin) {
@@ -321,8 +350,8 @@ const EditSidebar = () => {
         email: newPartner.email.trim().toLowerCase(),
         role: newPartner.role,
         name: newPartner.name.trim(),
-        bio: newPartner.bio?.trim() || undefined,    // Include bio
-        image: newPartner.image || undefined,         // Include image URL
+        bio: newPartner.bio?.trim() || undefined, // Include bio
+        image: newPartner.image || undefined, // Include image URL
       };
 
       console.log("🔍 INVITE PAYLOAD:", payload);
@@ -357,12 +386,14 @@ const EditSidebar = () => {
       });
 
       setShowAddPartner(false);
-
     } catch (error: any) {
       console.error("❌ Invite error:", error);
 
       // Specific error messages
-      if (error.message.includes("already exists") || error.message.includes("already registered")) {
+      if (
+        error.message.includes("already exists") ||
+        error.message.includes("already registered")
+      ) {
         toast.error("This email is already registered");
       } else if (error.message.includes("already sent")) {
         toast.error("Invitation already sent to this email");
@@ -376,14 +407,22 @@ const EditSidebar = () => {
     }
   };
 
-  const addPartnerToProjectTeam = (partner: { name: string; role: string; bio: string; image?: string }) => {
+  const addPartnerToProjectTeam = (partner: {
+    name: string;
+    role: string;
+    bio: string;
+    image?: string;
+  }) => {
     const projectTeamMember = {
       name: partner.name,
       title: partner.role,
       bio: partner.bio,
-      image: partner.image || ''
+      image: partner.image || "",
     };
-    const newProjectTeam = [...(content.proposal.projectTeam || []), projectTeamMember];
+    const newProjectTeam = [
+      ...(content.proposal.projectTeam || []),
+      projectTeamMember,
+    ];
     updateContent("proposal", { projectTeam: newProjectTeam });
     toast.success(`${partner.name} added to project team`);
   };
@@ -392,34 +431,38 @@ const EditSidebar = () => {
     const member = content.team.members?.[index];
     if (!member) return;
 
-    // If member is team lead, only admins can remove
-    if (member.role === 'team_lead' && !isAdmin) {
-      toast.error('Only admins can remove the team lead');
+    // Only admins can remove team members
+    if (!isAdmin) {
+      toast.error("Only admins can remove team members");
       return;
     }
 
     // Try SweetAlert2 for confirmation, fall back to window.confirm
     let confirmed = false;
     try {
-      const Swal = (await import('sweetalert2')).default;
+      const Swal = (await import("sweetalert2")).default;
       const result = await Swal.fire({
         title: `Remove ${member.name}?`,
-        text: 'This cannot be undone.',
-        icon: 'warning',
+        text: "This cannot be undone.",
+        icon: "warning",
         showCancelButton: true,
-        confirmButtonText: 'Yes, remove',
-        cancelButtonText: 'Cancel'
+        confirmButtonText: "Yes, remove",
+        cancelButtonText: "Cancel",
       });
       confirmed = !!result.isConfirmed;
     } catch (e) {
       // sweetalert2 not available, fallback
-      confirmed = confirm(`Remove ${member.name} from partners? This cannot be undone.`);
+      confirmed = confirm(
+        `Remove ${member.name} from partners? This cannot be undone.`,
+      );
     }
 
     if (!confirmed) return;
 
-    const newMembers = (content.team.members || []).filter((_, i) => i !== index);
-    updateContent('team', { members: newMembers });
+    const newMembers = (content.team.members || []).filter(
+      (_, i) => i !== index,
+    );
+    updateContent("team", { members: newMembers });
     toast.success(`${member.name} removed`);
     setExpandedPartner(null);
   };
@@ -431,11 +474,15 @@ const EditSidebar = () => {
   return (
     <div className="w-72 bg-muted/50 border-l border-border flex flex-col h-full">
       <div className="p-3 border-b border-border bg-background">
-        <h3 className="font-semibold text-sm text-foreground">Proposal Settings</h3>
+        <h3 className="font-semibold text-sm text-foreground">
+          Proposal Settings
+        </h3>
         <p className="text-xs text-muted-foreground mt-1">
           {currentProposalUuid
-            ? `Editing • Version ${currentProposalVersion}${isAdmin ? ' • Admin' : ' Team Member'}`
-            : 'Configure deliverables and pricing'}
+            ? `Editing • Version ${currentProposalVersion}${
+                isAdmin ? " • Admin" : " Team Member"
+              }`
+            : "Configure deliverables and pricing"}
         </p>
 
         <div className="flex gap-2 mt-3">
@@ -451,7 +498,7 @@ const EditSidebar = () => {
             className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save className="w-3 h-3" />
-            {isSaving ? 'Saving...' : currentProposalUuid ? 'Update' : 'Save'}
+            {isSaving ? "Saving..." : currentProposalUuid ? "Update" : "Save"}
           </button>
           <button
             onClick={handleNewProposal}
@@ -467,12 +514,14 @@ const EditSidebar = () => {
         <div className="p-3 border-b border-border bg-primary/5">
           <h4 className="text-xs font-semibold mb-2 flex items-center gap-1">
             <Archive className="w-3 h-3" />
-            {currentProposalUuid ? 'Update Proposal' : 'Save Proposal'}
+            {currentProposalUuid ? "Update Proposal" : "Save Proposal"}
           </h4>
           <div className="space-y-2">
             <Input
               value={saveFormData.author}
-              onChange={(e) => setSaveFormData(prev => ({ ...prev, author: e.target.value }))}
+              onChange={(e) =>
+                setSaveFormData((prev) => ({ ...prev, author: e.target.value }))
+              }
               placeholder="Author name..."
               className="h-7 text-xs"
               disabled={isSaving}
@@ -488,7 +537,11 @@ const EditSidebar = () => {
                 disabled={isSaving}
                 className="flex-1 h-7 text-[10px] bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? 'Saving...' : currentProposalUuid ? 'Update' : 'Save'}
+                {isSaving
+                  ? "Saving..."
+                  : currentProposalUuid
+                    ? "Update"
+                    : "Save"}
               </button>
               <button
                 onClick={() => setShowSaveDialog(false)}
@@ -504,7 +557,6 @@ const EditSidebar = () => {
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-6">
-
           <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Users className="w-3 h-3" />
@@ -515,16 +567,25 @@ const EditSidebar = () => {
                 <Collapsible
                   key={`partner-${index}`}
                   open={expandedPartner === index}
-                  onOpenChange={(open) => setExpandedPartner(open ? index : null)}
+                  onOpenChange={(open) =>
+                    setExpandedPartner(open ? index : null)
+                  }
                 >
                   <CollapsibleTrigger className="w-full">
                     <div className="p-2 rounded-md bg-background border border-border/50 flex items-center justify-between hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-[10px] font-semibold text-primary overflow-hidden">
                           {partner.image ? (
-                            <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
+                            <img
+                              src={partner.image}
+                              alt={partner.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            partner.name.split(' ').map(n => n[0]).join('')
+                            partner.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
                           )}
                         </div>
                         <span className="text-xs font-medium text-foreground truncate">
@@ -540,31 +601,47 @@ const EditSidebar = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="p-2 border-t border-border/30 bg-background space-y-2">
-                      <div className="text-[10px] text-muted-foreground">Role</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Role
+                      </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium">{partner.role === 'team_lead' ? 'Team Lead' : partner.role}</span>
-                        {partner.role === 'team_lead' && (
-                          <span className="text-[10px] text-muted-foreground ml-2">(Protected — admin can remove)</span>
+                        <span className="text-xs font-medium">
+                          {partner.role === "team_lead"
+                            ? "Team Lead"
+                            : partner.role}
+                        </span>
+                        {partner.role === "team_lead" && (
+                          <span className="text-[10px] text-muted-foreground ml-2">
+                            (Protected — admin can remove)
+                          </span>
                         )}
                       </div>
 
                       <div>
-                        <div className="text-[10px] text-muted-foreground mb-1">Bio</div>
-                        <div className="text-xs text-foreground">{partner.bio || 'No bio provided'}</div>
+                        <div className="text-[10px] text-muted-foreground mb-1">
+                          Bio
+                        </div>
+                        <div className="text-xs text-foreground">
+                          {partner.bio || "No bio provided"}
+                        </div>
                       </div>
 
                       <div>
                         <input
                           type="file"
                           accept="image/*"
-                          ref={(el) => (partnerFileInputRefs.current[index] = el)}
+                          ref={(el) =>
+                            (partnerFileInputRefs.current[index] = el)
+                          }
                           onChange={(e) => handlePartnerImageUpload(index, e)}
                           className="hidden"
                         />
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => partnerFileInputRefs.current[index]?.click()}
+                            onClick={() =>
+                              partnerFileInputRefs.current[index]?.click()
+                            }
                             className="flex-1 h-7 text-[10px] border border-border rounded hover:bg-muted/50 transition-colors flex items-center justify-center gap-1"
                           >
                             <Camera className="w-3 h-3" />
@@ -605,13 +682,17 @@ const EditSidebar = () => {
                 </Collapsible>
               ))}
 
-
               <div>
                 {showAddPartner ? (
                   <div className="p-3 rounded-md bg-background border border-primary/30 space-y-2">
                     <Input
                       value={newPartner.name}
-                      onChange={(e) => setNewPartner(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewPartner((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
                       placeholder="Full name..."
                       className="h-7 text-xs"
                       disabled={isInviting}
@@ -620,7 +701,12 @@ const EditSidebar = () => {
                     <Input
                       type="email"
                       value={newPartner.email}
-                      onChange={(e) => setNewPartner(prev => ({ ...prev, email: e.target.value }))}
+                      onChange={(e) =>
+                        setNewPartner((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
                       placeholder="Email address..."
                       className="h-7 text-xs"
                       disabled={isInviting}
@@ -632,8 +718,8 @@ const EditSidebar = () => {
                       </Label>
                       <Select
                         value={newPartner.role}
-                        onValueChange={(val: 'team_member' | 'admin') =>
-                          setNewPartner(prev => ({ ...prev, role: val }))
+                        onValueChange={(val: "team_member" | "admin") =>
+                          setNewPartner((prev) => ({ ...prev, role: val }))
                         }
                         disabled={isInviting}
                       >
@@ -641,7 +727,9 @@ const EditSidebar = () => {
                           <SelectValue placeholder="Select role..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="team_member">Team Member</SelectItem>
+                          <SelectItem value="team_member">
+                            Team Member
+                          </SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -649,7 +737,12 @@ const EditSidebar = () => {
 
                     <Textarea
                       value={newPartner.bio}
-                      onChange={(e) => setNewPartner(prev => ({ ...prev, bio: e.target.value }))}
+                      onChange={(e) =>
+                        setNewPartner((prev) => ({
+                          ...prev,
+                          bio: e.target.value,
+                        }))
+                      }
                       placeholder="Brief bio (optional)..."
                       className="text-xs min-h-[40px]"
                       disabled={isInviting}
@@ -713,7 +806,13 @@ const EditSidebar = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setNewPartner({ name: '', email: '', role: 'team_member', bio: '', image: '' });
+                          setNewPartner({
+                            name: "",
+                            email: "",
+                            role: "team_member",
+                            bio: "",
+                            image: "",
+                          });
                           setShowAddPartner(false);
                         }}
                         disabled={isInviting}
@@ -737,7 +836,7 @@ const EditSidebar = () => {
                     className="w-full p-2 rounded-md border border-dashed border-border/50 text-[10px] text-muted-foreground hover:bg-muted/30 hover:border-primary/30 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-3 h-3" />
-                    {isAdmin ? 'Add Partner' : 'Admin Only'}
+                    {isAdmin ? "Add Partner" : "Admin Only"}
                   </button>
                 )}
               </div>
@@ -751,8 +850,11 @@ const EditSidebar = () => {
 
 export default EditSidebar;
 
-{/* Key Deliverables Section */ }
-{/* <div>
+{
+  /* Key Deliverables Section */
+}
+{
+  /* <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Briefcase className="w-3 h-3" />
               Key Deliverables
@@ -1109,10 +1211,14 @@ export default EditSidebar;
                 );
               })}
             </div>
-          </div> */}
+          </div> */
+}
 
-{/* Engagement Packages Section */ }
-{/* <div>
+{
+  /* Engagement Packages Section */
+}
+{
+  /* <div>
             <h4 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide flex items-center gap-1">
               <Package className="w-3 h-3" />
               Engagement Packages
@@ -1213,4 +1319,5 @@ export default EditSidebar;
                 </Collapsible>
               ))}
             </div>
-          </div> */}
+          </div> */
+}

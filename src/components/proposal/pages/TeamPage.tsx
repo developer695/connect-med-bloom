@@ -4,23 +4,33 @@ import { Lock } from "lucide-react";
 import EditableText from "../EditableText";
 import TeamMemberAvatar from "../TeamMemberAvatar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const TeamPage = () => {
-  const { content, updateContent, isEditMode, canEditSection, isAdminUser } = useProposalContent();
+  const { content, updateContent, isEditMode } = useProposalContent();
+  const { isAdmin } = useUserRole();
   const { team } = content;
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Check if this section is editable by current user
-  const canEdit = canEditSection("team");
+  // Team page is part of the template - only admins can edit
+  const canEdit = isEditMode && isAdmin;
 
-  const updateMember = (index: number, field: "name" | "role" | "bio" | "image", value: string) => {
+  const updateMember = (
+    index: number,
+    field: "name" | "role" | "bio" | "image",
+    value: string,
+  ) => {
     if (!canEdit) return;
     const newMembers = [...team.members];
     newMembers[index] = { ...newMembers[index], [field]: value };
     updateContent("team", { members: newMembers });
   };
 
-  const handleImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (
+    index: number,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     if (!canEdit) return;
     const file = event.target.files?.[0];
     if (file) {
@@ -43,10 +53,13 @@ const TeamPage = () => {
             className="mb-4 flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg px-4 py-2"
           >
             <Lock className="w-4 h-4" />
-            <span>This page is part of the template and can only be edited by administrators.</span>
+            <span>
+              This page is part of the template and can only be edited by
+              administrators.
+            </span>
           </motion.div>
         )}
-        
+
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,7 +120,9 @@ const TeamPage = () => {
                 isEditMode={isEditMode && canEdit}
                 fileInputRef={(el) => (fileInputRefs.current[index] = el)}
                 onImageUpload={(e) => handleImageUpload(index, e)}
-                onAvatarClick={() => isEditMode && canEdit && fileInputRefs.current[index]?.click()}
+                onAvatarClick={() =>
+                  isEditMode && canEdit && fileInputRefs.current[index]?.click()
+                }
               />
               <h3 className="text-lg font-heading font-semibold text-foreground mb-1">
                 {canEdit ? (
@@ -154,7 +169,9 @@ const TeamPage = () => {
             {canEdit ? (
               <EditableText
                 value={team.collectiveTitle}
-                onSave={(val) => updateContent("team", { collectiveTitle: val })}
+                onSave={(val) =>
+                  updateContent("team", { collectiveTitle: val })
+                }
               />
             ) : (
               <span>{team.collectiveTitle}</span>

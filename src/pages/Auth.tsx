@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Auth() {
@@ -19,7 +27,9 @@ export default function Auth() {
   // Check if already logged in
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (session?.user) {
         // Get role and redirect
@@ -29,10 +39,10 @@ export default function Auth() {
           .eq("id", session.user.id)
           .single();
 
-        if (userData?.role === "admin") {
+        // Both admin and team_member can access the app
+        if (userData?.role === "admin" || userData?.role === "team_member") {
           navigate("/");
-        } else {
-          navigate("/auth");
+          return;
         }
       }
       setCheckingSession(false);
@@ -56,10 +66,11 @@ export default function Auth() {
 
     try {
       // 1. Sign in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
-        password: password,
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: email.toLowerCase().trim(),
+          password: password,
+        });
 
       if (authError) throw authError;
 
@@ -86,12 +97,11 @@ export default function Auth() {
       toast.success(`Welcome back, ${name}!`);
 
       // 4. Redirect based on role
-      if (role === "admin" || role === "team_member")  {
+      if (role === "admin" || role === "team_member") {
         navigate("/");
       } else {
-        navigate("/authoring"); 
+        navigate("/authoring");
       }
-
     } catch (err: any) {
       console.error("❌ Login error:", err);
 
@@ -158,15 +168,13 @@ export default function Auth() {
       console.log("✅ Auth user created:", authData.user.id);
 
       // 3. Insert admin into profiles table
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          email: email.toLowerCase().trim(),
-          name: email.split("@")[0], // Default name from email
-          role: "admin",
-          status: "active",
-        });
+      const { error: insertError } = await supabase.from("profiles").insert({
+        id: authData.user.id,
+        email: email.toLowerCase().trim(),
+        name: email.split("@")[0], // Default name from email
+        role: "admin",
+        status: "active",
+      });
 
       if (insertError) {
         console.error("❌ Insert error:", insertError);
@@ -179,7 +187,6 @@ export default function Auth() {
 
       // 4. Redirect to home
       navigate("/");
-
     } catch (err: any) {
       console.error("❌ Signup error:", err);
 
@@ -219,7 +226,10 @@ export default function Auth() {
         </div>
 
         {/* Form */}
-        <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-5">
+        <form
+          onSubmit={isLogin ? handleLogin : handleSignup}
+          className="space-y-5"
+        >
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -259,7 +269,11 @@ export default function Auth() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>
@@ -274,7 +288,9 @@ export default function Auth() {
                     toast.error("Enter your email first");
                     return;
                   }
-                  const { error } = await supabase.auth.resetPasswordForEmail(email);
+                  const { error } = await supabase.auth.resetPasswordForEmail(
+                    email
+                  );
                   if (error) {
                     toast.error(error.message);
                   } else {

@@ -1,6 +1,13 @@
 // src/contexts/AuthContext.tsx
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  ReactNode,
+} from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,7 +19,10 @@ interface AuthContextType {
   canEdit: boolean;
   userRole: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any; data?: any }>;
+  signIn: (
+    email: string,
+    password: string
+  ) => Promise<{ error: any; data?: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -28,55 +38,106 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningUp, setIsSigningUp] = useState(false);
 
+  // Use refs for duplicate fetch prevention (refs don't have stale closure issues)
+  const isFetchingRoleRef = useRef(false);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  const userRoleRef = useRef<string | null>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    userRoleRef.current = userRole;
+  }, [userRole]);
+
   // ✅ canEdit is true for BOTH admin AND team_member
   const canEdit = isAdmin || isTeamMember;
 
-  const fetchUserRole = async (userId: string) => {
-    try {
-      console.log('🔍 Fetching role for user:', userId);
+  const fetchUserRole = async (userId: string, force = false) => {
+    // Skip if already fetching (using ref for immediate check)
+    if (isFetchingRoleRef.current) {
+      console.log("⏳ Already fetching role, skipping duplicate call");
+      return;
+    }
 
-      // Check profiles table (uses 'id' column)
+    // Skip if already fetched for this user (unless forced)
+    if (
+      !force &&
+      lastFetchedUserIdRef.current === userId &&
+      userRoleRef.current !== null
+    ) {
+      console.log(
+        "✅ Role already fetched for this user, skipping. Role:",
+        userRoleRef.current
+      );
+      return;
+    }
+
+    isFetchingRoleRef.current = true;
+    try {
+      console.log("🔍 Fetching role for user:", userId);
+
+      // Add timeout to prevent hanging forever
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .abortSignal(controller.signal)
         .maybeSingle();
+
+      clearTimeout(timeoutId);
+
+      console.log("📦 Profile query result:", { profileData, profileError });
+
+      if (profileError) {
+        console.error("❌ Profile fetch error:", profileError);
+        // Only reset if we don't already have valid role data
+        if (!userRoleRef.current) {
+          setUserRole(null);
+          setIsAdmin(false);
+          setIsTeamMember(false);
+        }
+        return;
+      }
 
       if (profileData) {
         const role = profileData.role;
-        console.log('✅ Role from profiles:', role);
+        console.log("✅ Role from profiles:", role);
         setUserRole(role);
-        setIsAdmin(role === 'admin');
-        setIsTeamMember(role === 'team_member');
+        userRoleRef.current = role;
+        setIsAdmin(role === "admin");
+        setIsTeamMember(role === "team_member");
+        lastFetchedUserIdRef.current = userId;
         return;
       }
 
-      // Fallback: check Users table (uses 'user_id' column)
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (userData) {
-        const role = userData.role;
-        console.log('✅ Role from Users:', role);
-        setUserRole(role);
-        setIsAdmin(role === 'admin');
-        setIsTeamMember(role === 'team_member');
-        return;
+      console.log("⚠️ No role found in profiles table");
+      // Only reset if we don't already have valid role data
+      if (!userRoleRef.current) {
+        setUserRole(null);
+        setIsAdmin(false);
+        setIsTeamMember(false);
       }
-
-      console.log('⚠️ No role found');
-      setUserRole(null);
-      setIsAdmin(false);
-      setIsTeamMember(false);
-
-    } catch (error) {
-      console.error('❌ Error fetching role:', error);
-      setIsAdmin(false);
-      setIsTeamMember(false);
-      setUserRole(null);
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        console.error("❌ Query timed out after 10 seconds");
+      } else {
+        console.error("❌ Error fetching role:", error);
+      }
+      // DON'T reset state on error if we already have valid role data
+      if (!userRoleRef.current) {
+        setIsAdmin(false);
+        setIsTeamMember(false);
+        setUserRole(null);
+      } else {
+        console.log(
+          "⚠️ Keeping existing role data despite error:",
+          userRoleRef.current
+        );
+      }
+    } finally {
+      isFetchingRoleRef.current = false;
     }
   };
 
@@ -86,25 +147,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         // Step 1: Recover session from localStorage (persisted by Supabase)
-        const { data: { session: recoveredSession }, error: sessionError } = await supabase.auth.getSession();
+        const {
+          data: { session: recoveredSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
         if (sessionError) {
-          console.error('❌ Error recovering session:', sessionError);
+          console.error("❌ Error recovering session:", sessionError);
+          setIsLoading(false);
+          return;
         }
 
         if (mounted && recoveredSession?.user) {
-          console.log('✅ Session recovered from localStorage:', recoveredSession.user.email);
+          console.log(
+            "✅ Session recovered from localStorage:",
+            recoveredSession.user.email
+          );
           setSession(recoveredSession);
           setUser(recoveredSession.user);
           await fetchUserRole(recoveredSession.user.id);
         } else {
-          console.log('⚠️ No persisted session found');
+          console.log("⚠️ No persisted session found");
           setSession(null);
           setUser(null);
-          setIsLoading(false);
         }
+
+        setIsLoading(false);
       } catch (error) {
-        console.error('❌ Error during auth initialization:', error);
+        console.error("❌ Error during auth initialization:", error);
         setIsLoading(false);
       }
     };
@@ -113,25 +183,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
 
     // Step 2: Listen for auth state changes (login, logout, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
 
-        console.log('🔄 Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+      console.log("🔄 Auth state changed:", event, session?.user?.email);
 
-        if (session?.user) {
-          await fetchUserRole(session.user.id);
-        } else {
-          setIsAdmin(false);
-          setIsTeamMember(false);
-          setUserRole(null);
-        }
+      // Update session and user state immediately
+      setSession(session);
+      setUser(session?.user ?? null);
 
+      if (session?.user) {
+        // IMPORTANT: Defer the database call to allow Supabase client to update its internal auth state
+        // This prevents RLS issues where the query runs before the auth token is available
+        setTimeout(async () => {
+          if (mounted) {
+            await fetchUserRole(session.user.id);
+            setIsLoading(false);
+          }
+        }, 100);
+      } else {
+        setIsAdmin(false);
+        setIsTeamMember(false);
+        setUserRole(null);
+        lastFetchedUserIdRef.current = null;
+        userRoleRef.current = null;
         setIsLoading(false);
       }
-    );
+    });
 
     return () => {
       mounted = false;
@@ -140,25 +220,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     if (error) return { error };
     return { data, error: null };
   };
 
   const signUp = async (email: string, password: string) => {
-    if (isSigningUp) return { error: { message: 'Already processing...' } };
+    if (isSigningUp) return { error: { message: "Already processing..." } };
     setIsSigningUp(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
       if (signUpError) return { error: signUpError };
 
       if (data.user) {
-        await supabase.from("profiles").insert([{
-          user_id: data.user.id,
-          email: data.user.email,
-          role: 'team_member ||',
-        }]);
+        await supabase.from("profiles").insert([
+          {
+            id: data.user.id,
+            email: data.user.email,
+            role: "team_member",
+            status: "active",
+          },
+        ]);
       }
       return { error: null };
     } finally {
@@ -174,18 +263,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      isAdmin,
-      isTeamMember,
-      canEdit,
-      userRole,
-      isLoading,
-      signIn,
-      signUp,
-      signOut,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isAdmin,
+        isTeamMember,
+        canEdit,
+        userRole,
+        isLoading,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

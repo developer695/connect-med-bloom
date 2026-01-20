@@ -26,22 +26,59 @@ export default function AcceptInvitation() {
     console.log("🔍 Checking for authenticated user...");
     console.log("🔗 Current URL:", window.location.href);
     console.log("🔗 URL Hash:", window.location.hash);
-    checkUser();
+    handleInviteToken();
   }, []);
 
-  const checkUser = async () => {
+  const handleInviteToken = async () => {
     try {
       // Check if there's a token in the URL (from invite link)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
-      
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const type = hashParams.get("type");
+
       console.log("🎫 URL token type:", type);
       console.log("🎫 Has access token:", !!accessToken);
+      console.log("🎫 Has refresh token:", !!refreshToken);
 
-      // Get current session (Supabase sets this from the invite link)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+      // If we have tokens in the URL hash, we need to set the session manually
+      if (accessToken && refreshToken && type === "invite") {
+        console.log("🔐 Setting session from invite tokens...");
+
+        const { data: sessionData, error: setSessionError } =
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+        if (setSessionError) {
+          console.error(
+            "❌ Error setting session from tokens:",
+            setSessionError,
+          );
+          setError("Failed to verify invitation. The link may have expired.");
+          setLoading(false);
+          return;
+        }
+
+        if (sessionData?.session?.user) {
+          console.log(
+            "✅ Session set from invite tokens:",
+            sessionData.session.user.email,
+          );
+          // Clear the hash from URL for cleaner UX (optional)
+          window.history.replaceState(null, "", window.location.pathname);
+          await processAuthenticatedUser(sessionData.session);
+          return;
+        }
+      }
+
+      // Fallback: Check if there's already an existing session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
       console.log("📋 Session exists:", !!session);
       console.log("👤 Session user:", session?.user?.email);
 
@@ -53,39 +90,28 @@ export default function AcceptInvitation() {
       }
 
       if (!session?.user) {
-        console.log("❌ No session found");
-        setError("Invalid invitation link. Please click the link from your email.");
+        console.log("❌ No session found and no valid tokens in URL");
+        setError(
+          "Invalid invitation link. Please click the link from your email.",
+        );
         setLoading(false);
         return;
       }
 
+      await processAuthenticatedUser(session);
+    } catch (err: any) {
+      console.error("❌ Error:", err);
+      setError("Failed to load user data");
+      setLoading(false);
+    }
+  };
+
+  const processAuthenticatedUser = async (session: any) => {
+    try {
       const user = session.user;
       console.log("✅ User found:", user.email);
 
-      // First try Users table (for admin - uses user_id column)
-      const { data: adminData, error: adminError } = await supabase
-        .from("Users")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (adminData && adminData.role === "admin") {
-        console.log("✅ Admin found in Users table:", adminData);
-        setUserEmail(adminData.email || user.email || "");
-        setUserName(adminData.name || user.user_metadata?.name || "");
-        setUserRole("admin");
-        setUserId(user.id);
-
-        if (adminData.status === "active") {
-          toast.info("Account already set up. Redirecting to login...");
-          navigate("/auth");
-          return;
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Otherwise check profiles table (for team member - uses id column)
+      // Check profiles table for user data
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -110,8 +136,8 @@ export default function AcceptInvitation() {
           return;
         }
       } else {
-        // No record found in either table - use auth user data
-        console.log("⚠️ No record found, using auth data");
+        // No record found in profiles table - use auth user data
+        console.log("⚠️ No profile found, using auth data");
         setUserEmail(user.email || "");
         setUserName(user.user_metadata?.name || "");
         setUserRole(user.user_metadata?.role || "team_member");
@@ -119,9 +145,8 @@ export default function AcceptInvitation() {
       }
 
       setLoading(false);
-
     } catch (err: any) {
-      console.error("❌ Error:", err);
+      console.error("❌ Error processing user:", err);
       setError("Failed to load user data");
       setLoading(false);
     }
@@ -159,40 +184,27 @@ export default function AcceptInvitation() {
 
       console.log("✅ Password updated");
 
-      // Update the correct table based on role
-      if (userRole === "admin") {
-        // Update Users table for admin (uses user_id column)
-        const { error: userError } = await supabase
-          .from("Users")
-          .update({ status: "active" })
-          .eq("user_id", userId);
+      // Update profiles table status to active
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("id", userId);
 
-        if (userError) {
-          console.error("⚠️ Users table update error:", userError);
-        }
-        console.log("✅ Admin status updated in Users table");
-      } else {
-        // Update profiles table for team member (uses id column)
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ status: "active" })
-          .eq("id", userId);
-
-        if (profileError) {
-          console.error("⚠️ Profile update error:", profileError);
-        }
-        console.log("✅ Team member status updated in profiles table");
+      if (profileError) {
+        console.error("⚠️ Profile update error:", profileError);
       }
+      console.log("✅ User status updated in profiles table");
 
       // Sign out so they can login with new password
       await supabase.auth.signOut();
 
-      toast.success("🎉 Account setup complete! Please login with your new password.");
+      toast.success(
+        "🎉 Account setup complete! Please login with your new password.",
+      );
 
       setTimeout(() => {
         navigate("/auth");
       }, 1500);
-
     } catch (err: any) {
       console.error("❌ Error:", err);
       toast.error(err.message || "Failed to set password");
@@ -219,7 +231,9 @@ export default function AcceptInvitation() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
         <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-4 text-slate-900">Invalid Invitation</h1>
+          <h1 className="text-2xl font-bold mb-4 text-slate-900">
+            Invalid Invitation
+          </h1>
           <p className="text-slate-600 mb-6">{error}</p>
           <button
             onClick={() => navigate("/auth")}
@@ -248,9 +262,10 @@ export default function AcceptInvitation() {
         </div>
 
         <form onSubmit={handleSetPassword} className="space-y-5">
-         
           <div>
-            <label className="block text-sm font-medium mb-2 text-slate-700">Email</label>
+            <label className="block text-sm font-medium mb-2 text-slate-700">
+              Email
+            </label>
             <input
               type="email"
               value={userEmail}
@@ -279,7 +294,11 @@ export default function AcceptInvitation() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
           </div>

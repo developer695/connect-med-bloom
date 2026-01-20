@@ -10,26 +10,6 @@ import React, {
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
-// Custom debounce function
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
-
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
-
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(later, wait);
-  };
-}
-
 // Helper to get current date formatted
 const getCurrentDateFormatted = () => format(new Date(), "MMMM yyyy");
 const getCurrentDateFullFormatted = () => format(new Date(), "MMMM d, yyyy");
@@ -529,60 +509,73 @@ export const ProposalContentProvider = ({
     }
   };
 
-  // ✅ UPDATED: Auto-save to individual columns
-  const autoSaveToDatabase = useCallback(
-    debounce(
-      async (contentToSave: ProposalContent, uuid: string, version: number) => {
-        if (!autoSaveEnabled || readOnly) return;
+  // ✅ Auto-save function (not debounced - debouncing handled separately)
+  const performAutoSave = useCallback(
+    async (contentToSave: ProposalContent, uuid: string, version: number) => {
+      if (!autoSaveEnabled || readOnly) return;
 
-        try {
-          setSaveStatus("saving");
-          setIsSaving(true);
+      try {
+        setSaveStatus("saving");
+        setIsSaving(true);
 
-          const newVersion = version + 1;
+        const newVersion = version + 1;
 
-          // ✅ Save each section to its own column
-          const { error } = await supabase
-            .from("site_content")
-            .update({
-              cover: contentToSave.cover,
-              letter: contentToSave.letter,
-              about: contentToSave.about,
-              how_we_work: contentToSave.howWeWork,
-              solutions: contentToSave.solutions,
-              markets: contentToSave.markets,
-              clients: contentToSave.clients,
-              team: contentToSave.team,
-              proposal: contentToSave.proposal,
-              value: contentToSave.value,
-              contact: contentToSave.contact,
-              shapes: contentToSave.shapes,
-              version: newVersion,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", uuid);
+        // ✅ Save each section to its own column
+        const { error } = await supabase
+          .from("site_content")
+          .update({
+            cover: contentToSave.cover,
+            letter: contentToSave.letter,
+            about: contentToSave.about,
+            how_we_work: contentToSave.howWeWork,
+            solutions: contentToSave.solutions,
+            markets: contentToSave.markets,
+            clients: contentToSave.clients,
+            team: contentToSave.team,
+            proposal: contentToSave.proposal,
+            value: contentToSave.value,
+            contact: contentToSave.contact,
+            shapes: contentToSave.shapes,
+            version: newVersion,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", uuid);
 
-          if (error) {
-            console.error("❌ Auto-save failed:", error);
-            setSaveStatus("error");
-            return;
-          }
-
-          setCurrentProposalVersion(newVersion);
-          setSaveStatus("saved");
-          setLastSaved(new Date());
-
-          setTimeout(() => setSaveStatus("idle"), 2000);
-        } catch (error) {
-          console.error("❌ Auto-save error:", error);
+        if (error) {
+          console.error("❌ Auto-save failed:", error);
           setSaveStatus("error");
-        } finally {
-          setIsSaving(false);
+          return;
         }
-      },
-      2000
-    ),
+
+        setCurrentProposalVersion(newVersion);
+        setSaveStatus("saved");
+        setLastSaved(new Date());
+
+        setTimeout(() => setSaveStatus("idle"), 2000);
+      } catch (error) {
+        console.error("❌ Auto-save error:", error);
+        setSaveStatus("error");
+      } finally {
+        setIsSaving(false);
+      }
+    },
     [autoSaveEnabled, readOnly]
+  );
+
+  // ✅ Debounced auto-save using ref to prevent memory leaks
+  const debouncedAutoSave = useCallback(
+    (contentToSave: ProposalContent, uuid: string, version: number) => {
+      // Clear any existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      // Set new timeout
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        performAutoSave(contentToSave, uuid, version);
+      }, 2000);
+    },
+    [performAutoSave]
   );
 
   const updateContent = useCallback(
@@ -606,7 +599,7 @@ export const ProposalContentProvider = ({
         // ✅ Trigger auto-save to database after content update
         if (currentProposalUuid && autoSaveEnabled) {
           console.log("💾 Auto-saving to database...");
-          autoSaveToDatabase(
+          debouncedAutoSave(
             newContent,
             currentProposalUuid,
             currentProposalVersion
@@ -621,7 +614,7 @@ export const ProposalContentProvider = ({
       currentProposalUuid,
       currentProposalVersion,
       autoSaveEnabled,
-      autoSaveToDatabase,
+      debouncedAutoSave,
     ]
   );
 

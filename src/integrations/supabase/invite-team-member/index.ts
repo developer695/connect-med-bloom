@@ -64,7 +64,7 @@ export const inviteTeamMember = async ({
       throw new Error(data.error);
     }
 
-    console.log("✅ Invitation sent, user saved to Users table");
+    console.log("✅ Invitation sent, profile saved to profiles table");
     return data;
   } catch (err: any) {
     console.error("💥 Invite failed:", err);

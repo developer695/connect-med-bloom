@@ -3,7 +3,14 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, LogIn, LogOut, Loader2, Download } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  LogIn,
+  LogOut,
+  Loader2,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportDialog from "./ExportDialog";
 import ShareDialog from "./ShareDialog";
@@ -42,19 +49,22 @@ const pages = [
 
 const UnifiMedProposal = () => {
   const { isEditMode, readOnly, isLoading, content } = useProposalContent();
-  const { user, isAdmin, canEdit, signOut } = useAuth(); 
+  const { user, isAdmin, canEdit, signOut } = useAuth();
   const { toast } = useToast();
-  console.log("canIsadmit",canEdit);
-  
+  console.log("canIsadmit", canEdit);
+
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const goToPage = useCallback((index: number) => {
-    setDirection(index > currentPage ? 1 : -1);
-    setCurrentPage(index);
-  }, [currentPage]);
+  const goToPage = useCallback(
+    (index: number) => {
+      setDirection(index > currentPage ? 1 : -1);
+      setCurrentPage(index);
+    },
+    [currentPage]
+  );
 
   const goNext = useCallback(() => {
     if (currentPage < pages.length - 1) {
@@ -87,7 +97,8 @@ const UnifiMedProposal = () => {
       console.error("PDF download error:", error);
       toast({
         title: "Download Failed",
-        description: "There was an error downloading the PDF. Please try again.",
+        description:
+          "There was an error downloading the PDF. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -127,7 +138,10 @@ const UnifiMedProposal = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center p-2 md:p-4">
-            <div id="proposal-content" className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden">
+            <div
+              id="proposal-content"
+              className="w-full h-full max-w-7xl mx-auto bg-card rounded-lg shadow-elevated overflow-hidden"
+            >
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 <motion.div
                   key={currentPage}
@@ -148,7 +162,7 @@ const UnifiMedProposal = () => {
             </div>
           </div>
         </div>
-        
+
         {/* ✅ Edit sidebar - for BOTH admin AND team_member */}
         {isEditMode && !readOnly && user && canEdit && <EditSidebar />}
       </div>
@@ -175,14 +189,14 @@ const UnifiMedProposal = () => {
               <span className="hidden md:inline">Next</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            
+
             {/* ✅ Show for BOTH admin AND team_member */}
             {!readOnly && user && canEdit && (
               <>
                 <ExportDialog />
                 <ShareDialog />
                 <EditModeToggle />
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -192,12 +206,11 @@ const UnifiMedProposal = () => {
                   <LogOut className="w-4 h-4" />
                   <span className="hidden md:inline">Logout</span>
                 </Button>
-                  
               </>
             )}
-            
+
             {/* Show Login if not authenticated */}
-            {!readOnly && !user && isAdmin && (
+            {!readOnly && !user && (
               <Button
                 variant="outline"
                 size="sm"
@@ -252,7 +265,9 @@ const UnifiMedProposal = () => {
           </div>
 
           <div className="text-xs md:text-sm text-muted-foreground min-w-[80px] text-right">
-            <span className="font-semibold text-foreground">{currentPage + 1}</span>
+            <span className="font-semibold text-foreground">
+              {currentPage + 1}
+            </span>
             <span> / {pages.length}</span>
           </div>
         </div>

@@ -8,10 +8,13 @@ interface ProtectedRouteProps {
   requireAdmin?: boolean; // Optional: only require admin for specific routes
 }
 
-const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, loading, isAdmin } = useAuth();
+const ProtectedRoute = ({
+  children,
+  requireAdmin = false,
+}: ProtectedRouteProps) => {
+  const { user, isLoading, isAdmin } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-full min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

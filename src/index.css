@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -53,20 +53,31 @@
     --brand-dark: 204 91% 25%;
     --surface: 0 0% 100%;
     --surface-elevated: 0 0% 100%;
-    
+
     /* Gradients */
-    --gradient-brand: linear-gradient(135deg, hsl(204 91% 34%), hsl(204 70% 45%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 14% 98%));
-    
+    --gradient-brand: linear-gradient(
+      135deg,
+      hsl(204 91% 34%),
+      hsl(204 70% 45%)
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(0 0% 100%),
+      hsl(220 14% 98%)
+    );
+
     /* Shadows */
     --shadow-sm: 0 1px 2px hsl(220 20% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 20% 15% / 0.08), 0 2px 4px -2px hsl(220 20% 15% / 0.05);
-    --shadow-lg: 0 10px 15px -3px hsl(220 20% 15% / 0.1), 0 4px 6px -4px hsl(220 20% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(220 20% 15% / 0.08),
+      0 2px 4px -2px hsl(220 20% 15% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(220 20% 15% / 0.1),
+      0 4px 6px -4px hsl(220 20% 15% / 0.05);
     --shadow-brand: 0 4px 14px -3px hsl(204 91% 34% / 0.25);
 
     /* Typography */
-    --font-heading: 'Outfit', system-ui, sans-serif;
-    --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-heading: "Outfit", system-ui, sans-serif;
+    --font-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+      sans-serif;
   }
 
   .dark {
@@ -98,7 +109,7 @@
     --border: 220 20% 20%;
     --input: 220 20% 20%;
     --ring: 204 70% 50%;
-    
+
     --sidebar-background: 220 20% 10%;
     --sidebar-foreground: 220 10% 85%;
     --sidebar-primary: 204 76% 48%;
@@ -120,7 +131,12 @@
     font-family: var(--font-body);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading);
   }
 }
