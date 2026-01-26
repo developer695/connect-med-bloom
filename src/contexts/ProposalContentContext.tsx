@@ -114,7 +114,13 @@ export interface ProposalContent {
     sectionLabel: string;
     title: string;
     intro: string;
-    members: { name: string; role: string; bio: string; image?: string }[];
+    members: {
+      name: string;
+      role: string;
+      bio: string;
+      image?: string;
+      email?: string;
+    }[];
     collectiveTitle: string;
     collectiveText: string;
   };
@@ -287,7 +293,7 @@ export const calculateDeliverableCost = (deliverable: Deliverable): number => {
 // Helper to calculate price from deliverables
 export const calculatePackagePrice = (
   includedDeliverables: string[],
-  allDeliverables: Deliverable[]
+  allDeliverables: Deliverable[],
 ): number => {
   return includedDeliverables.reduce((total, title) => {
     const deliverable = allDeliverables.find((d) => d.title === title);
@@ -300,7 +306,7 @@ export const calculatePackagePrice = (
 
 export const calculatePackageHours = (
   includedDeliverables: string[],
-  allDeliverables: Deliverable[]
+  allDeliverables: Deliverable[],
 ): number => {
   return includedDeliverables.reduce((total, title) => {
     const deliverable = allDeliverables.find((d) => d.title === title);
@@ -314,7 +320,7 @@ export const calculatePackageHours = (
 // Helper to calculate duration in months from deliverables
 export const calculatePackageDurationMonths = (
   includedDeliverables: string[],
-  allDeliverables: Deliverable[]
+  allDeliverables: Deliverable[],
 ): number => {
   let maxMonths = 0;
 
@@ -358,7 +364,7 @@ interface ProposalContextType {
   content: ProposalContent;
   updateContent: <K extends keyof ProposalContent>(
     section: K,
-    data: Partial<ProposalContent[K]>
+    data: Partial<ProposalContent[K]>,
   ) => void;
   isEditMode: boolean;
   setIsEditMode: (value: boolean) => void;
@@ -380,7 +386,7 @@ interface ProposalContextType {
 }
 
 const ProposalContentContext = createContext<ProposalContextType | undefined>(
-  undefined
+  undefined,
 );
 
 interface ProposalContentProviderProps {
@@ -397,11 +403,11 @@ export const ProposalContentProvider = ({
   proposalId,
 }: ProposalContentProviderProps) => {
   const [content, setContent] = useState<ProposalContent>(
-    initialContent || fallbackContent
+    initialContent || fallbackContent,
   );
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentProposalUuid, setCurrentProposalUuid] = useState<string | null>(
-    proposalId || null
+    proposalId || null,
   );
   const [currentProposalVersion, setCurrentProposalVersion] =
     useState<number>(1);
@@ -493,7 +499,7 @@ export const ProposalContentProvider = ({
             "✅ Loaded proposal ID:",
             data.id,
             "Version:",
-            data.version
+            data.version,
           );
         }
       } else {
@@ -559,7 +565,7 @@ export const ProposalContentProvider = ({
         setIsSaving(false);
       }
     },
-    [autoSaveEnabled, readOnly]
+    [autoSaveEnabled, readOnly],
   );
 
   // ✅ Debounced auto-save using ref to prevent memory leaks
@@ -575,13 +581,13 @@ export const ProposalContentProvider = ({
         performAutoSave(contentToSave, uuid, version);
       }, 2000);
     },
-    [performAutoSave]
+    [performAutoSave],
   );
 
   const updateContent = useCallback(
     <K extends keyof ProposalContent>(
       section: K,
-      data: Partial<ProposalContent[K]>
+      data: Partial<ProposalContent[K]>,
     ) => {
       if (readOnly) {
         console.log("❌ BLOCKED: readOnly is true!");
@@ -602,7 +608,7 @@ export const ProposalContentProvider = ({
           debouncedAutoSave(
             newContent,
             currentProposalUuid,
-            currentProposalVersion
+            currentProposalVersion,
           );
         }
 
@@ -615,7 +621,7 @@ export const ProposalContentProvider = ({
       currentProposalVersion,
       autoSaveEnabled,
       debouncedAutoSave,
-    ]
+    ],
   );
 
   const resetContent = async () => {
@@ -667,7 +673,7 @@ export const useProposalContent = () => {
   const context = useContext(ProposalContentContext);
   if (!context) {
     throw new Error(
-      "useProposalContent must be used within ProposalContentProvider"
+      "useProposalContent must be used within ProposalContentProvider",
     );
   }
   return context;

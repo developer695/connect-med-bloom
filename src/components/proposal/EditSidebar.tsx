@@ -443,7 +443,7 @@ const EditSidebar = () => {
       const Swal = (await import("sweetalert2")).default;
       const result = await Swal.fire({
         title: `Remove ${member.name}?`,
-        text: "This cannot be undone.",
+        text: "This will remove the team member from the proposal and delete their profile. This cannot be undone.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Yes, remove",
@@ -453,17 +453,63 @@ const EditSidebar = () => {
     } catch (e) {
       // sweetalert2 not available, fallback
       confirmed = confirm(
-        `Remove ${member.name} from partners? This cannot be undone.`,
+        `Remove ${member.name} from partners? This will also delete their profile and cannot be undone.`,
       );
     }
 
     if (!confirmed) return;
 
+    // Delete user from profiles table and auth.users if email exists
+    if (member.email) {
+      try {
+        // First, get the user_id from profiles table using email
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email", member.email.trim().toLowerCase())
+          .single();
+
+        if (profileError || !profileData) {
+          console.error("❌ Error finding user profile:", profileError);
+          toast.error("User profile not found");
+          return;
+        }
+
+        // Call edge function to delete user from auth.users and profiles
+        const { data, error: deleteError } = await supabase.functions.invoke(
+          "hyper-responder",
+          {
+            body: {
+              user_id: profileData.id,
+            },
+          },
+        );
+
+        if (deleteError) {
+          console.error("❌ Error deleting user:", deleteError);
+          toast.error(`Failed to delete user: ${deleteError.message}`);
+          return;
+        }
+
+        if (data?.error) {
+          console.error("❌ API error:", data.error);
+          toast.error(`Failed to delete user: ${data.error}`);
+          return;
+        }
+
+        console.log(`✅ User deleted for ${member.email}`);
+      } catch (error) {
+        console.error("❌ Error deleting user:", error);
+        toast.error("Failed to delete team member");
+        return;
+      }
+    }
+
     const newMembers = (content.team.members || []).filter(
       (_, i) => i !== index,
     );
     updateContent("team", { members: newMembers });
-    toast.success(`${member.name} removed`);
+    toast.success(`${member.name} removed successfully`);
     setExpandedPartner(null);
   };
 
