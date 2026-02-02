@@ -53,6 +53,7 @@ const EditSidebar = () => {
 
   const [expandedPartner, setExpandedPartner] = useState<number | null>(null);
   const [showAddPartner, setShowAddPartner] = useState(false);
+  const [userCheckResult, setUserCheckResult] = useState<{exists: boolean; status?: string} | null>(null);
   const [newPartner, setNewPartner] = useState({
     name: "",
     email: "",
@@ -60,6 +61,59 @@ const EditSidebar = () => {
     bio: "",
     image: "",
   });
+  const [emailInput, setEmailInput] = useState("");
+
+  // Debounce email input to avoid re-renders on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setNewPartner((prev) => ({ ...prev, email: emailInput }));
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [emailInput]);
+
+// Check if user already exists
+useEffect(() => {
+  if (!newPartner.email) {
+    setUserCheckResult(null);
+    return;
+  }
+
+  const checkIfUserExists = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email, status")
+        .eq("email", newPartner.email.toLowerCase().trim())
+        .maybeSingle();
+
+      if (error && error.code !== "PGRST116") {
+        console.error("Error checking user:", error);
+        setUserCheckResult(null);
+        return;
+      }
+
+      if (data) {
+        console.log("✅ User already exists:", data);
+        setUserCheckResult({ exists: true, status: data.status });
+        
+        // Show warning that user exists
+        if (data.status === "active") {
+          toast.error(`${newPartner.email} is already registered`);
+        } else if (data.status === "accepted" || data.status === "pending") {
+          toast.warning(`Invitation already sent to ${newPartner.email}`);
+        }
+      } else {
+        setUserCheckResult({ exists: false });
+      }
+    } catch (error) {
+      console.error("Error checking user:", error);
+      setUserCheckResult(null);
+    }
+  };
+
+  checkIfUserExists();
+}, [newPartner.email]);
+
   const [isInviting, setIsInviting] = useState(false);
   const partnerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const newPartnerFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -267,7 +321,7 @@ const EditSidebar = () => {
 
     setNewPartner((prev) => ({ ...prev, image: url }));
   };
-  console.log("newPartner dataa", newPartner);
+
   const getAdminRole = async () => {
     setIsLoading(true);
 
@@ -311,7 +365,6 @@ const EditSidebar = () => {
   useEffect(() => {
     getAdminRole();
   }, []);
-  console.log("is admin", isAdmin);
 
   // Updated handleInvitePartner function
   // Replace your existing function with this one
@@ -325,6 +378,12 @@ const EditSidebar = () => {
 
     if (!newPartner.role) {
       toast.error("Please select a role");
+      return;
+    }
+
+    // Check if user already exists
+    if (userCheckResult?.exists) {
+      toast.error("This user is already registered or has a pending invitation");
       return;
     }
 
@@ -384,6 +443,8 @@ const EditSidebar = () => {
         bio: "",
         image: "",
       });
+      setEmailInput("");
+      setUserCheckResult(null);
 
       setShowAddPartner(false);
     } catch (error: any) {
@@ -746,12 +807,9 @@ const EditSidebar = () => {
 
                     <Input
                       type="email"
-                      value={newPartner.email}
+                      value={emailInput}
                       onChange={(e) =>
-                        setNewPartner((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
+                        setEmailInput(e.target.value)
                       }
                       placeholder="Email address..."
                       className="h-7 text-xs"
@@ -859,6 +917,7 @@ const EditSidebar = () => {
                             bio: "",
                             image: "",
                           });
+                          setEmailInput("");
                           setShowAddPartner(false);
                         }}
                         disabled={isInviting}

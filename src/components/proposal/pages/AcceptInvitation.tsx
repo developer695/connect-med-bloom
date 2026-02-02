@@ -31,7 +31,7 @@ export default function AcceptInvitation() {
 
   const handleInviteToken = async () => {
     try {
-      // Check if there's a token in the URL (from invite link)
+    
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
@@ -111,7 +111,7 @@ export default function AcceptInvitation() {
       const user = session.user;
       console.log("✅ User found:", user.email);
 
-      // Check profiles table for user data
+ 
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")

@@ -14,6 +14,9 @@ import NotFound from "./pages/NotFound";
 import { ToastContainer } from "react-toastify";
 import AuthCallback from "./pages/AuthCallback";
 import AcceptInvitation from "./components/proposal/pages/AcceptInvitation";
+import ResetPassword from "./pages/SendPassword";
+import SendPassword from "./pages/SendPassword";
+import ResetPasswordPage from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,7 @@ const App = () => (
             draggable
             pauseOnHover
           />
+
           <Routes>
             {/* ✅ Accept Invitation - NO AUTH REQUIRED (must be before protected routes) */}
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
@@ -42,6 +46,8 @@ const App = () => (
             {/* ✅ Auth Pages */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/send-password" element={<SendPassword />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* ✅ Public View Routes - Read-only */}
             <Route
