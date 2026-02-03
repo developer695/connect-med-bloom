@@ -15,7 +15,10 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 import pptxgen from "pptxgenjs";
+import { pdf } from "@react-pdf/renderer";
+import React from "react";
 import type { ProposalContent } from "@/contexts/ProposalContentContext";
+import { ProposalPDFDocument } from "./pdfTemplates";
 
 // Generate static HTML for PDF export with rich styling
 const generateStaticHTML = (content: ProposalContent): string => {
@@ -2102,4 +2105,22 @@ export const exportToPowerPoint = async (content: ProposalContent) => {
   addFooter(slide11, 11);
 
   await pptx.writeFile({ fileName: "UnifiMed-Proposal.pptx" });
+};
+
+// PDF Export using @react-pdf/renderer - matches UI design exactly
+export const exportToPDFReact = async (content: ProposalContent) => {
+  try {
+    console.log("exportToPDFReact - Received content:", JSON.stringify(content, null, 2));
+
+    // Create PDF document using @react-pdf/renderer
+    const blob = await pdf(
+      React.createElement(ProposalPDFDocument, { content })
+    ).toBlob();
+
+    // Download the PDF
+    saveAs(blob, "UnifiMed-Proposal.pdf");
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    throw error;
+  }
 };

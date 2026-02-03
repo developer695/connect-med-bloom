@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { exportToWord, exportToPDF, exportToPowerPoint } from "@/utils/exportProposal";
+import { exportToWord, exportToPDFReact, exportToPowerPoint } from "@/utils/exportProposal";
 import { useToast } from "@/hooks/use-toast";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 
@@ -21,7 +21,7 @@ const ExportDialog = () => {
   const handleExportPDF = async () => {
     setIsExporting("pdf");
     try {
-      await exportToPDF(content);
+      await exportToPDFReact(content);
       toast({
         title: "PDF Exported",
         description: "Your complete proposal has been downloaded as a PDF.",

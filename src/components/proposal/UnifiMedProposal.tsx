@@ -18,7 +18,7 @@ import EditModeToggle from "./EditModeToggle";
 import EditSidebar from "./EditSidebar";
 import { useProposalContent } from "@/contexts/ProposalContentContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { exportToPDF } from "@/utils/exportProposal";
+import { exportToPDFReact } from "@/utils/exportProposal";
 import { useToast } from "@/hooks/use-toast";
 
 import CoverPage from "./pages/CoverPage";
@@ -88,7 +88,8 @@ const UnifiMedProposal = () => {
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      await exportToPDF(content);
+      console.log("PDF Export - Current content:", content);
+      await exportToPDFReact(content);
       toast({
         title: "PDF Downloaded",
         description: "The proposal has been downloaded as a PDF.",
